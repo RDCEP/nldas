@@ -1,0 +1,368 @@
+#+PROPERTY: session *R*
+
+* Create a mask from the first day's data
+  :PROPERTIES:
+  :session:  *R*
+  :END:
+
+#+BEGIN_SRC sh :session :results silent
+  mkdir data/output
+#+END_SRC
+
+#+BEGIN_SRC sh :session *nldas* :results output
+  gdalwarp -overwrite \
+      -t_srs EPSG:4326 \
+      -te -180 -90 180 90 \
+      -tr 0.08333333 0.08333333 \
+      -srcnodata 9999 \
+      -dstnodata 9999 \
+      data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+      data/output/nldasMask5minRaw.tif
+#+END_SRC
+
+#+RESULTS:
+: 
+: > > > > > > Creating output file that is 4320P x 2160L.
+: Processing input file data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb.
+: 0...10...20...30...40...50...60...70...80...90...100 - done.
+
+#+BEGIN_SRC sh :session :results output
+  gdalinfo data/output/nldasMask5minRaw.tif
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasMask5minRaw.tif
+Size is 4320, 2160
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-180.000000000000000,90.000000000000000)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=PIXEL
+Corner Coordinates:
+Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+Band 1 Block=4320x1 Type=Float64, ColorInterp=Gray
+  NoData Value=9999
+Band 2 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 3 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 4 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 5 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 6 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 7 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 8 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 9 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 10 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 11 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+#+end_example
+
+
+#+BEGIN_SRC sh :session *nldas* :results output
+  gdal_translate -ot Byte -b 1 \
+      -a_nodata 255 \
+      -scale \
+      data/output/nldasMask5minRaw.tif \
+      data/output/nldasMask5minByte.tif
+#+END_SRC
+
+#+RESULTS:
+: 
+: > > > Input file size is 4320, 2160
+: 0...10...20...30...40...50...60...70...80...90...100 - done.
+
+#+BEGIN_SRC sh :session :results output
+  gdalinfo data/output/nldasMask5minByte.tif
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasMask5minByte.tif
+Size is 4320, 2160
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-180.000000000000000,90.000000000000000)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=BAND
+Corner Coordinates:
+Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
+  NoData Value=255
+#+end_example
+
+* Convert byte values to a binary mask
+
+** Scaling with gdal_translate doesn't work
+
+#+BEGIN_SRC sh :session :results output
+  gdal_translate \
+      -scale 0 254 1 1 \
+      data/output/nldasMask5minByte.tif \
+      data/output/nldasMask5min.tif
+#+END_SRC
+
+#+RESULTS:
+: Input file size is 4320, 2160
+: 0...10...20...30...40...50...60...70...80...90...100 - done.
+
+** Use R!
+
+#+BEGIN_SRC R
+  nldasMask5minByte <- setMinMax(
+    raster( "data/output/nldasMask5minByte.tif"))
+  
+  nldasMask5min <-
+    raster( nldasMask5minByte)
+  NAvalue( nldasMask5min) <- 255
+  
+  nldasMask5min[] <-
+    ifelse( !is.na( nldasMask5minByte[]), 1, NA)
+  
+  nldasMask5min <- writeRaster(
+    nldasMask5min,
+    filename= "data/output/nldasMask5min.tif",
+    overwrite= TRUE,
+    datatype= "LOG1S")
+#+END_SRC
+
+#+BEGIN_SRC sh :session :results output
+  gdalinfo data/output/nldasMask5min.tif
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasMask5min.tif
+Size is 4320, 2160
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-180.000000000000000,90.000000000000000)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  COMPRESSION=LZW
+  INTERLEAVE=BAND
+Corner Coordinates:
+Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
+  Min=1.000 Max=1.000 
+  Minimum=1.000, Maximum=1.000, Mean=1.000, StdDev=0.000
+  NoData Value=255
+  Metadata:
+    STATISTICS_MAXIMUM=1
+    STATISTICS_MEAN=1
+    STATISTICS_MINIMUM=1
+    STATISTICS_STDDEV=0
+#+end_example
+
+
+* Write out grid cells
+
+#+BEGIN_SRC R :results silent
+  nldasCells5min <- which( as.logical( nldasMask5min[]))
+  
+  cat(
+    nldasCells5min,
+    file= "data/output/nldasCells5min.txt",
+    sep= "\n")
+#+END_SRC
+
+
+#+BEGIN_SRC sh :session :results output
+  head data/output/nldasCells5min.txt
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+1918741
+1918742
+1918743
+1918744
+1918745
+1918746
+1918747
+1918748
+1918749
+1918750
+#+end_example
+
+* Get the bounding box and write CDO grid description
+
+#+BEGIN_SRC R
+  nldasRegion <- trim( nldasMask5min, filename= "data/output/nldasRegion.tif")
+#+END_SRC
+
+#+BEGIN_SRC sh :session *nldas* :results output
+  gdalwarp -overwrite \
+      -t_srs EPSG:4326 \
+      -tr 0.08333333 0.08333333 \
+      -srcnodata 9999 \
+      -dstnodata 9999 \
+      data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+      data/output/nldasRegionRaw.tif
+#+END_SRC
+
+#+RESULTS:
+: 
+: > > > > > Creating output file that is 696P x 336L.
+: Processing input file data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb.
+: 0...10...20...30...40...50...60...70...80...90...100 - done.
+
+
+#+BEGIN_SRC sh :session :results output
+  gdalinfo data/output/nldasRegionRaw.tif
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasRegionRaw.tif
+Size is 696, 336
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-125.000500000000002,53.000500000000002)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=PIXEL
+Corner Coordinates:
+Upper Left  (-125.0005000,  53.0005000) (125d 0' 1.80"W, 53d 0' 1.80"N)
+Lower Left  (-125.0005000,  25.0005011) (125d 0' 1.80"W, 25d 0' 1.80"N)
+Upper Right ( -67.0005023,  53.0005000) ( 67d 0' 1.81"W, 53d 0' 1.80"N)
+Lower Right ( -67.0005023,  25.0005011) ( 67d 0' 1.81"W, 25d 0' 1.80"N)
+Center      ( -96.0005012,  39.0005006) ( 96d 0' 1.80"W, 39d 0' 1.80"N)
+Band 1 Block=696x1 Type=Float64, ColorInterp=Gray
+  NoData Value=9999
+Band 2 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 3 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 4 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 5 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 6 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 7 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 8 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 9 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 10 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+#+end_example
+
+
+#+BEGIN_SRC sh :session *nldas* :results output
+  gdal_translate -ot Byte -b 1 \
+      -a_nodata 255 \
+      -scale \
+      data/output/nldasRegionRaw.tif \
+      data/output/nldasRegionByte.tif
+#+END_SRC
+
+#+RESULTS:
+: 
+: > > > Input file size is 696, 336
+: 0...10...20...30...40...50...60...70...80...90...100 - done.
+
+
+#+BEGIN_SRC R :results silent
+  
+  griddesFormat <- 
+    "gridtype = lonlat
+  xsize    = %d
+  ysize    = %d
+  xfirst   = %13.8f
+  xinc     = %13.8f
+  yfirst   = %13.8f
+  yinc     = %13.8f\n"
+  
+  griddes <- 
+    sprintf(
+      griddesFormat,
+      ncol( nldasRegion),
+      nrow( nldasRegion),
+      xmin( nldasRegion),
+      res( nldasRegion)[1],
+      ymin( nldasRegion),
+      res( nldasRegion)[2])
+  
+  cat( griddes, file= "scripts/nldas_5min.grid")
+#+END_SRC
+
+#+BEGIN_SRC R :results output
+  cat( griddes)
+#+END_SRC
+
+#+RESULTS:
+: 
+: gridtype = lonlat
+: xsize    = 696
+: ysize    = 336
+: xfirst   = -125.00000220
+: xinc     =    0.08333333
+: yfirst   =   25.00000260
+: yinc     =    0.08333333
+
