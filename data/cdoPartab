@@ -1,0 +1,11 @@
+11	TMP	air temperature at 2m [K]
+51	SPFH	specific humidity [kg/kg]
+1	PRES	pressure [Pa]
+33	UGRD	u wind [m/s]
+34	VGRD	v wind [m/s]
+205	DLWRF	downward longwave radiation flux [W/m^2]
+153	var153	undefined
+157	CAPE	convective available potential energy [J/kg]
+228	PEVAP	potential evaporation [kg/m^2]
+61	APCP	accumulated precipitation [mm]
+204	DSWRF	downward shortwave radiation [W/m^2]

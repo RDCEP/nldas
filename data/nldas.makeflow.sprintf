@@ -1,119 +1,113 @@
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.grb $cdoPartab $cdoGrid
-	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.nc
+	$cdoExecutable $cdoHourlyArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.nc
 	$cdoExecutable -f nc mergetime $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0100.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0200.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0300.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0400.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0500.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0600.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0700.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0800.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0900.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1000.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1100.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1200.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1300.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1400.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1500.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1600.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1700.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1800.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.1900.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2000.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2100.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2200.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.2300.002.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
 	$cdoExecutable -f nc setname,tmax -timmax -selname,TMP $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
 	$cdoExecutable -f nc setname,tmin -timmin -selname,TMP $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.pmax.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+	$cdoExecutable -f nc setname,pmax -timmax -selname,PRES $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.pmax.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.pmin.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+	$cdoExecutable -f nc setname,pmin -timmin -selname,PRES $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.pmin.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.hmax.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+	$cdoExecutable -f nc setname,hmax -timmax -selname,SPFH $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.hmax.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.hmin.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+	$cdoExecutable -f nc setname,hmin -timmin -selname,SPFH $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.hmin.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.precip.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
 	$cdoExecutable -f nc setname,precip -timsum -selname,APCP $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.precip.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.precip.nc
 
 $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.solar.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
 	$cdoExecutable -f nc setname,solar -timavg -selname,DSWRF $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.solar.nc
-_MAKEFLOW_COLLECT_LIST+=$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.solar.nc
 
-$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.daily.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.precip.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.solar.nc
-	$cdoExecutable -f nc merge $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.precip.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.solar.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.daily.nc
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.pres.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+	$cdoExecutable -f nc setname,pres -timavg -selname,PRES $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.pres.nc
 
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.spfh.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+	$cdoExecutable -f nc setname,spfh -timavg -selname,SPFH $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.spfh.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmp.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc
+cdo -f nc selname,TMP $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.merge.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmp.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmpEqTmax.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmp.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc
+cdo -f nc eq $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmp.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmax.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmpEqTmax.nc
+
+$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmpEqTmin.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmp.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc
+cdo -f nc eq $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmp.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmin.nc $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.tmpEqTmin.nc

@@ -1,0 +1,3 @@
+*~
+*.makeflow*
+slurm-*.out

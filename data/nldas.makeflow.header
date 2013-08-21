@@ -1,7 +1,7 @@
 CORES=1
 dataDir=data/NLDAS_FORA0125_H.002
 cdoExecutable=cdo
-cdoPartab=scripts/cdoPartab
-cdoGrid=scripts/cusa_5min.grid
-cdoRemapArgs="-t $cdoPartab remapnn,$cdoGrid -selcode,11,61,204"
+cdoPartab=data/cdoPartab
+cdoGrid=data/nldas_5min.grid
+cdoHourlyArgs="-f nc -t $cdoPartab setzaxis,surface -remapnn,$cdoGrid"
 

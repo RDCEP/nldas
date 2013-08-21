@@ -1,9 +1,8 @@
-
-## 1979/004  %1$s
-## 19790104 %2$s
+## date <- as.Date( "1979-01-01")
 
 date <- seq(
   from= as.Date( "1980-01-01"),
+  ## to= as.Date( "1979-12-31"),
   to=   as.Date( "2013-07-04"),
   by= "day")
 
@@ -11,14 +10,17 @@ snarfFile <- function( fn) {
   readChar( fn, file.info( fn)$size)
 }
 
-makeflowHeader <-   snarfFile( "data/nldas.makeflow.header")
-## makeflowTemplate <- readLines( "data/nldas.makeflow.sprintf")
-makeflowTemplate <- readLines( "data/nldas.makeflow.noCollect.sprintf")
+## maybe/someday implement this
 
-## makeflowStanza <- sprintf(
-##   makeflowTemplate,
-##   format( date, "%Y/%j"),
-##   format( date, "%Y%m%d"))
+## hourlyTemplate <-
+##   "$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $cdoGrid
+## 	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc"
+
+makeflowHeader <-   snarfFile( "data/nldas.makeflow.header")
+makeflowTemplate <- readLines( "data/nldas.makeflow.sprintf")
+
+## 1979/004  %1$s
+## 19790104 %2$s
 
 makeflowLines <- lapply( 
   makeflowTemplate,
@@ -36,5 +38,6 @@ makeflowStanza <- lapply(
 cat(
   makeflowHeader,
   unlist( makeflowStanza),
-  file= "scripts/nldas2013185.makeflow",
+  file= format( date[ length( date)], "scripts/nldas%Y%j.makeflow"),
   sep= "\n")
+
