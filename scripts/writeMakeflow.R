@@ -22,22 +22,41 @@ makeflowTemplate <- readLines( "data/nldas.makeflow.sprintf")
 ## 1979/004  %1$s
 ## 19790104 %2$s
 
-makeflowLines <- lapply( 
-  makeflowTemplate,
-  sprintf,
-  format( date, "%Y/%j"),
-  format( date, "%Y%m%d"))
+createHourlyMakeflow <- function(
+  dateVector,
+  makeflowHeader=   snarfFile( "data/nldas.makeflow.header"),
+  makeflowTemplate= readLines( "data/nldas.makeflow.sprintf"))
+{
+  makeflowLines <- lapply( 
+    makeflowTemplate,
+    sprintf,
+    format( dateVector, "%Y/%j"),
+    format( dateVector, "%Y%m%d"))
+  makeflowStanza <- lapply(
+    1:length( dateVector),
+    function( ix) lapply(
+      makeflowLines, 
+      function( x) x[[ ix]]))
+  c( makeflowHeader, unlist( makeflowStanza))
+}
 
+writeHourlyMakeflow <- function(
+  dateVector,
+  makeflowFilename= format(
+    dateVector[ length( dateVector)],
+    "scripts/nldas%Y%j.makeflow"),
+  append= FALSE)
+{
+  cat(
+    createHourlyMakeflow( dateVector),
+    file= makeflowFilename,
+    sep= "\n",
+    append= append)
+  makeflowFilename
+}
 
-makeflowStanza <- lapply(
-  1:length( date),
-  function( ix) lapply(
-    makeflowLines, 
-    function( x) x[[ ix]]))
+failedDates <- sort( as.Date(
+  c( "2007/004", "1990/020", "1982/046"),
+  format= "%Y/%j"))
 
-cat(
-  makeflowHeader,
-  unlist( makeflowStanza),
-  file= format( date[ length( date)], "scripts/nldas%Y%j.makeflow"),
-  sep= "\n")
-
+writeHourlyMakeflow( failedDates, "scripts/failedHourly.makeflow")
