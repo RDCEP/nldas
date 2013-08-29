@@ -2,13 +2,17 @@
 
 ## --interactive
 
-##startDate <- as.Date( argv[ 1])
-##endDate   <- as.Date( argv[ 2])
 stripe    <- as.integer( argv[ 1])
+## stripe    <- 14
 
-startDate <- as.Date( "1979-01-01")
-endDate   <- as.Date( "2013-07-04")
-## stripe    <- 32
+degreesPerStripe <- 0.5
+
+##startYear <- as.Date( argv[ 1])
+##endYear   <- as.Date( argv[ 2])
+startYear <- 1979
+endYear   <- 2013
+years <- startYear:endYear
+
 
 library( ncdf4)
 library( raster)
@@ -18,64 +22,62 @@ library( abind)
 library( stringr)
 
 library( doMC)  
-registerDoMC( multicore:::detectCores())
-## registerDoMC( 4)
+## registerDoMC( multicore:::detectCores())
+registerDoMC( 5)
 
 ## options( error= recover)
 
-nldasDates <- seq(
-  from= startDate,
-  to=   endDate,
-  by= "day")
+## annualPaths <- sprintf(
+##   "/scratch/midway/nbest/data/annual/%d", years)
 
-dailyFiles <- format(
-  nldasDates,
-  "data/NLDAS_FORA0125_H.002/%Y/%j/NLDAS_FORA0125_H.A%Y%m%d.daily.nc")
-  
-nldasVars <- c( "precip", "solar", "tmin", "tmax")
+nldasVars <- c(
+  "tmin", "tmax", "precip", "solar",
+  "hmax", "hmin",
+  "spfh", ## "spfhTmax", "spfhTmin",
+  "pmax", "pmin",
+  "pres" ##, "presTmax", "presTmin"
+  ) 
 
 nldasMask <- setMinMax(
   raster( "data/output/nldasRegion.tif"))
+
+nldasRes <- res( nldasMask)[ 1]
   
-nldasAnchorPoints <- {
-  nldasRes <- res( nldasMask)[ 1]
+nldasAnchorPoints <-
   cbind(
     lon= seq(
       from= xmin( nldasMask) + nldasRes / 2,
       to= xmax( nldasMask) - nldasRes / 2,
-      by= 2), 
+      by= degreesPerStripe), 
     lat= ymax( nldasMask))
-}
 
-readNldasValues <- function(  ncFn, varid, lon, n= 24) {
+readNldasValues <- function(  ncFn, lon, n= degreesPerStripe / nldasRes) {
   nc <- nc_open( ncFn)
+  varid <- names( nc$var)[ 1]
   column <-
-    which( nc$dim$lon$vals > lon)[ 1]
-  row <-
-    which( nc$dim$lat$vals > ymin( nldasMask))[ 1]
+    which( nc$dim$lon$vals > lon)[ 1] -1
   m <-
     ncvar_get(
       nc,
       varid= varid,
-      start= c( column, row, 1,
-        if( varid %in% c( "tmin", "tmax")) 1 else NULL),
-      count= c( n, nrow( nldasMask), 1,
-        if( varid %in% c( "tmin", "tmax")) 1 else NULL),
+      start= c( column, 1, 1),
+      count= c( n, -1, -1),
                                         # collapse_degen seems to have
       collapse_degen= FALSE)            # no effect
-  nldasDays <-
-    as.integer(
-      as.Date(
-        str_extract(
-          nc$dim$time$units,
-          "....-..-..")
-        ) - as.Date( "1978-12-31"))
+  nldasDays <- seq(
+    from= as.Date(
+      sprintf(
+        "%s-01-01",
+        str_match( nc$filename, "_([12][0-9]{3})\\.nc$")[,2])),
+    length.out= length( nc$dim$time$vals),
+    by= "day")
   dn <- list(
     longitude= nc$dim$lon$vals[ column:(column +n -1)],
-    latitude=  nc$dim$lat$vals[ row:( row +nrow( nldasMask) -1)],
-    time= nldasDays)
-  dim(m) <- c( dim(m), 1)             # to compensate for apparent
+    latitude=  nc$dim$lat$vals, ##[ row:( row +nrow( nldasMask) -1)],
+    time= as.character( nldasDays))
+  ## dim(m) <- c( dim(m), 1)             # to compensate for apparent
   dimnames( m) <- dn                    # collapse_degen bug
+  nc_close( nc)
   m
 }
 
@@ -86,16 +88,15 @@ readNldasValues <- function(  ncFn, varid, lon, n= 24) {
 nldasValues <-
   foreach(
     var= nldasVars) %:%
+    ## var= nldasVars[1:2]) %:%
   foreach(
-    ncFn= dailyFiles,
+    year= years,
     .combine= abind,
     .multicombine= TRUE ) %dopar% {
       readNldasValues(
-        ncFn,
-        var,
+        sprintf( "/scratch/midway/nbest/annual/%2$d/%1$s_%2$d.nc", var, year),
         nldasAnchorPoints[ stripe, 1])
     }
-
 names( nldasValues) <- nldasVars
 for( var in nldasVars)
   names( dimnames( nldasValues[[ var]])) <-
@@ -127,45 +128,136 @@ ncVarsFunc <- function(
   xy, ncDays,
   ncGroupName= "narr",
   ncTimeUnits= "days since 1978-12-31 00:00:00",
-  compression= NA
+  compression= NA,
+  missval= ncdf4:::default_missval_ncdf4()
   ) {
   list(
     ncvar_def(
-      ##name= sprintf( "%s/tmin", ncGroupName),
       name= "tmin",
       units= "C",
       longname= "daily minimum temperature",
       dim= ncDimsFunc( xy, ncDays,
         ncTimeUnits,
         ncTimeName= "time"),
-      compression= compression),
+      compression= compression,
+      missval= missval),
     ncvar_def(
-      ## name= sprintf( "%s/tmax", ncGroupName),
       name= "tmax",
       units= "C",
       longname= "daily maximum temperature",
       dim= ncDimsFunc( xy, ncDays,
         ncTimeUnits,
-        ncTimeName= "time"),  ## sprintf( "%s/time", ncGroupName)),
-      compression= compression),
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
     ncvar_def(
-      ## name= sprintf( "%s/precip", ncGroupName),
       name= "precip",
       units= "mm",
       longname= "daily total precipitation",
       dim= ncDimsFunc( xy, ncDays,
         ncTimeUnits,
-        ncTimeName= "time"), ## sprintf( "%s/time", ncGroupName)),
-      compression= compression),
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
     ncvar_def(
-      ## name= sprintf( "%s/solar", ncGroupName),
       name= "solar",
       units= "MJ/m^2/day",
       longname= "daily average downward short-wave radiation flux",
       dim= ncDimsFunc( xy, ncDays,
         ncTimeUnits,
-        ncTimeName= "time"), ## sprintf( "%s/time", ncGroupName)),            
-      compression= compression))
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "hmax",
+      units= "kg/kg",
+      longname= "maximum specific humidity",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "hmin",
+      units= "kg/kg",
+      longname= "minimum specific humidity",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "spfh",
+      units= "kg/kg",
+      longname= "specific humidity",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "spfhTmax",
+      units= "kg/kg",
+      longname= "mean specific humidity at tmax",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "spfhTmin",
+      units= "kg/kg",
+      longname= "mean specific humidity at tmin",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "pmax",
+      units= "Pa",
+      longname= "maximum pressure",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "pmin",
+      units= "Pa",
+      longname= "minimum pressure",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "pres",
+      units= "Pa",
+      longname= "pressure",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "presTmax",
+      units= "Pa",
+      longname= "mean pressure at tmax",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval),
+    ncvar_def(
+      name= "presTmin",
+      units= "Pa",
+      longname= "mean pressure at tmin",
+      dim= ncDimsFunc( xy, ncDays,
+        ncTimeUnits,
+        ncTimeName= "time"),
+      compression= compression,
+      missval= missval))
 }
 
 psimsNcFromXY <- function(
@@ -200,16 +292,19 @@ writePsimsNc <- function( nldasValues, col, row) {
   psimsNc <- psimsNcFromXY(
     xy,
     ncDays= as.integer(
-      dimnames( nldasValues[[ "tmin"]])$time),
-    resWorld= 5/60,
+     as.Date(  dimnames( nldasValues[[ "tmin"]])$time) -
+      as.Date( "1978-12-31")),
+    resWorld= nldasRes,
     ncTimeUnits= "days since 1978-12-31 23:00:00")  
   for( var in names( nldasValues)) {
     vals <- nldasValues[[ var]][ col, row,]
-    vals <- switch( var,
-        solar= vals *86400 /1000000, # Change units to MJ /m^2 /day
-        tmin= vals -273.15,          # change K to C
-        tmax= vals -273.15,
-        precip= vals *3600 *24)      # Change mm/s to mm/day
+    vals <- switch(
+      var,
+      solar= vals *86400 /1000000, # Change units to MJ /m^2 /day
+      tmin= vals -273.15,          # change K to C
+      tmax= vals -273.15,
+      ## precip= vals *3600 *24,      # Change mm/s to mm/day
+      vals )
     ## browser()
     ncvar_put(
       nc= psimsNc,
@@ -220,6 +315,8 @@ writePsimsNc <- function( nldasValues, col, row) {
   nc_close( psimsNc)
   psimsNc$filename
 }
+
+registerDoMC()
 
 ## time <-
 ##   system.time(

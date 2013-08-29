@@ -1,7 +1,7 @@
 ## date <- as.Date( "1979-01-01")
 
 date <- seq(
-  from= as.Date( "1980-01-01"),
+  from= as.Date( "1979-01-01"),
   ## to= as.Date( "1979-12-31"),
   to=   as.Date( "2013-07-04"),
   by= "day")
@@ -24,11 +24,11 @@ makeflowTemplate <- readLines( "data/nldas.makeflow.sprintf")
 
 createHourlyMakeflow <- function(
   dateVector,
-  makeflowHeader=   snarfFile( "data/nldas.makeflow.header"),
-  makeflowTemplate= readLines( "data/nldas.makeflow.sprintf"))
+  makeflowHeader=   "data/nldas.makeflow.header",
+  makeflowTemplate= "data/nldas.makeflow.sprintf")
 {
   makeflowLines <- lapply( 
-    makeflowTemplate,
+    readLines( makeflowTemplate),
     sprintf,
     format( dateVector, "%Y/%j"),
     format( dateVector, "%Y%m%d"))
@@ -37,7 +37,9 @@ createHourlyMakeflow <- function(
     function( ix) lapply(
       makeflowLines, 
       function( x) x[[ ix]]))
-  c( makeflowHeader, unlist( makeflowStanza))
+  c(
+    snarfFile( makeflowHeader),
+    unlist( makeflowStanza))
 }
 
 writeHourlyMakeflow <- function(
@@ -45,10 +47,11 @@ writeHourlyMakeflow <- function(
   makeflowFilename= format(
     dateVector[ length( dateVector)],
     "scripts/nldas%Y%j.makeflow"),
-  append= FALSE)
+  append= FALSE,
+  ...)
 {
   cat(
-    createHourlyMakeflow( dateVector),
+    createHourlyMakeflow( dateVector, ...),
     file= makeflowFilename,
     sep= "\n",
     append= append)
@@ -60,3 +63,8 @@ failedDates <- sort( as.Date(
   format= "%Y/%j"))
 
 writeHourlyMakeflow( failedDates, "scripts/failedHourly.makeflow")
+
+writeHourlyMakeflow(
+  date, "scripts/dailyAgg.makeflow",
+  makeflowHeader=   "data/dailyAgg.makeflow.header")
+  makeflowTemplate= "data/dailyAgg.makeflow.sprintf")

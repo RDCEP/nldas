@@ -8,11 +8,17 @@
 
 years <- 1979:2013
 
+## vars <- c(
+##   "hmax", "hmin",
+##   "pmax", "pmin",
+##   "precip", "pres", "solar", "spfh",
+##   "tmax", "tmin")
+
+## vars <- c( "tmpEqTmax", "tmpEqTmin")
+
 vars <- c(
-  "hmax", "hmin",
-  "pmax", "pmin",
-  "precip", "pres", "solar", "spfh",
-  "tmax", "tmin")
+  "presTmax", "presTmin",
+  "spfhTmax", "spfhTmin")
 
 library( plyr)
 
@@ -30,21 +36,23 @@ annualRule <- function( year, var) {
   inputFileNames <- format(
     dates,
     paste(
-      "data/NLDAS_FORA0125_H.002/%Y/%j/NLDAS_FORA0125_H.A%Y%m%d",
+      "/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/%Y/%j/NLDAS_FORA0125_H.A%Y%m%d",
       var,
       "nc",
       sep= "."))
   ruleTargetFormat <-
-    "data/annual/%1$d/%2$s_%1$d.nc"
+    "/project/joshuaelliott/nldas/data/annual/%1$d/%2$s_%1$d.nc"
   ruleTarget <- sprintf(
     ruleTargetFormat, year, var)
   ruleSource <- paste(
     inputFileNames, collapse= " ")
-  ruleCommand <- paste(
-    "cdo -f nc mergetime",
-    ruleSource,
-    ruleTarget,
-    collapse= " ")
+  ruleCommand <- sprintf(
+    "(find /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/%1$d -name \"*.%2$s.nc\" | sort; echo  /project/joshuaelliott/nldas/data/annual/%1$d/%2$s_%1$d.nc) | xargs cdo -O -f nc mergetime", year, var) 
+    ## paste(
+    ## "cdo -f nc mergetime",
+    ## ruleSource,
+    ## ruleTarget,
+    ## collapse= " ")
   paste(
     ruleTarget,
     ": ",
@@ -62,8 +70,20 @@ annualRules <-
   }
 
 
+file.remove( "scripts/daily.makeflow")
 l_ply(
   unlist( annualRules, recursive= FALSE),
   cat,
   file= "scripts/daily.makeflow",
+  append= TRUE)
+
+cat(
+  "\n",
+  file= "scripts/dailyAgg.makeflow",
+  append= TRUE)
+
+l_ply(
+  unlist( annualRules, recursive= FALSE),
+  cat,
+  file= "scripts/dailyAgg.makeflow",
   append= TRUE)

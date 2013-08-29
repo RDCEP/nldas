@@ -5,7 +5,8 @@
 printf "| Submitting :: %10s | %+10s | %10s | %10s | %s |\n"\
   "job name" "output file" "error file" "sbatch file" "job id"
 # for stripe in 2 3 5 7 11 27 30 35 41 43
-for stripe in {1..29};
+for stripe in {1..116};
+## for stripe in 60;
 do
     ## [ ${stripe} -eq 32 ] && continue
     job_name="writePsims"  #name I came up with

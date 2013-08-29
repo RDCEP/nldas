@@ -1,5 +1,45 @@
 #+PROPERTY: session *R*
 
+* Convert GRB metadata to CDO parameter table
+
+#+BEGIN_SRC sh :session *nldas* :value output verbatim
+  ~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb
+#+END_SRC
+
+#+RESULTS:
+| 1:0:D=1979010113:TMP:2 m above gnd:kpds=11              | 105 | 2:anl:winds are N/S:"Temp. [K]                                        |
+| 2:143796:D=1979010113:SPFH:2 m above gnd:kpds=51        | 105 | 2:anl:winds are N/S:"Specific humidity [kg/kg]                        |
+| 3:317756:D=1979010113:PRES:sfc:kpds=1                   |   1 | 0:anl:winds are N/S:"Pressure [Pa]                                    |
+| 4:491716:D=1979010113:UGRD:10 m above gnd:kpds=33       | 105 | 10:anl:winds are N/S:"u wind [m/s]                                    |
+| 5:625456:D=1979010113:VGRD:10 m above gnd:kpds=34       | 105 | 10:anl:winds are N/S:"v wind [m/s]                                    |
+| 6:759196:D=1979010113:DLWRF:sfc:kpds=205                |   1 | 0:anl:winds are N/S:"Downward longwave radiation flux [W/m^2]         |
+| 7:933156:D=1979010112:var153:sfc:kpds=153               |   1 | 0:0-1hr acc:winds are N/S:"undefined                                  |
+| 8:1087006:D=1979010113:CAPE:180-0 mb above gnd:kpds=157 | 116 | 46080:anl:winds are N/S:"Convective available potential energy [J/Kg] |
+| 9:1260966:D=1979010112:PEVAP:sfc:kpds=228               |   1 | 0:0-1hr acc:winds are N/S:"Potential evaporation [Kg/m^2]             |
+| 10:1414816:D=1979010112:APCP:sfc:kpds=61                |   1 | 0:0-1hr acc:winds are N/S:"Total precipitation [kg/m^2]               |
+| 11:1588776:D=1979010113:DSWRF:sfc:kpds=204              |   1 | 0:anl:winds are N/S:"Downward shortwave radiation flux [W/m^2]        |
+
+Org is ignoring 'verbatim' for some reason.  Maybe need to upgrade or report a bug?
+
+Do this by hand for now.  See data/cdoPartab.
+
+#+BEGIN_SRC sh :session :value output verbatim
+  cat data/cdoPartab
+#+END_SRC
+
+#+RESULTS:
+|  11 | TMP    | air temperature at 2m [K]                    |
+|  51 | SPFH   | specific humidity [kg/kg]                    |
+|   1 | PRES   | pressure [Pa]                                |
+|  33 | UGRD   | u wind [m/s]                                 |
+|  34 | VGRD   | v wind [m/s]                                 |
+| 205 | DLWRF  | downward longwave radiation flux [W/m^2]     |
+| 153 | var153 | undefined                                    |
+| 157 | CAPE   | convective available potential energy [J/kg] |
+| 228 | PEVAP  | potential evaporation [kg/m^2]               |
+|  61 | APCP   | accumulated precipitation [mm]               |
+| 204 | DSWRF  | downward shortwave radiation [W/m^2]         |
+
 * Create a mask from the first day's data
   :PROPERTIES:
   :session:  *R*
@@ -366,3 +406,24 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 : yfirst   =   25.00000260
 : yinc     =    0.08333333
 
+* Combine annual files into all-time files
+
+#+BEGIN_SRC sh
+  set -x
+  for var in hmax hmin pmin pmax precip pres solar spfh tmax tmin
+  do 
+      (find data/annual -name "${var}_*.nc"; \
+          echo data/full/${var}_nldas_1979-2013.nc4) \
+          | xargs cdo -O -f nc4 -z zip mergetime
+  done
+#+END_SRC 
+
+This should perhaps be done on compute nodes but it really does not
+cost much computatationally.
+
+
+* Clean up intermediate data
+
+#+BEGIN_SRC sh
+  find data/NLDAS_FORA0125_H.002 -name "*.nc" -delete
+#+END_SRC

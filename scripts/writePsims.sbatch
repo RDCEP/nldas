@@ -3,7 +3,8 @@
 #SBATCH --account=pi-joshuaelliott
 #SBATCH --qos=normal
 # #SBATCH --partition=sandyb,westmere
-#SBATCH --partition=bigmem,amd
+# #SBATCH --partition=bigmem,amd
+#SBATCH --constraint=ib
 #SBATCH --time=8:00:00
 #SBATCH --exclusive
 
