@@ -1,44 +1,279 @@
 #+PROPERTY: session *R*
+#+PROPERTY: results silent
+#+PROPERTY: exports both
 
-* Convert GRB metadata to CDO parameter table
+* Initialize the R session
+  - Note taken on [2013-09-03 Tue 15:29]
 
-#+BEGIN_SRC sh :session *nldas* :value output verbatim
-  ~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb
+#+BEGIN_SRC R
+  library( XML)
+  library( stringr)
+
+  baseUrl <- "ftp://hydro1.sci.gsfc.nasa.gov/data/s4pa/NLDAS/NLDAS_FORA0125_H.002"
+#+END_SRC
+
+The base of the NLDAS downloads is =src_R[ :exports results]{ baseUrl}=.
+
+
+* Download hourly data
+
+The NLDAS archive begins at [1979-01-01 13:00].  Our experience is
+that the most recent data available is four days before the present.
+When starting with no data one should use the following date sequence
+to specify the complete collection:
+
+#+NAME: nldasDates
+#+HEADER: :var fromYear=  1979
+#+HEADER: :var fromMonth=    1 
+#+HEADER: :var fromDay=      1 
+#+HEADER: :var fromHour=    13
+#+BEGIN_SRC R :results output silent
+  nldasDates <-
+    seq(
+      from= ISOdate(
+        year=  fromYear,
+        month= fromMonth,
+        day=   fromDay,
+        hour=  fromHour),
+      to= as.POSIXlt( Sys.Date() - 4),
+      by= "hour")
+#+END_SRC
+
+Using the default arguments will populate the data as follows:
+
+
+#+CALL: nldasDates()
+
+#+RESULTS:
+
+#+BEGIN_SRC R :results value
+  head( nldasDates)
 #+END_SRC
 
 #+RESULTS:
-| 1:0:D=1979010113:TMP:2 m above gnd:kpds=11              | 105 | 2:anl:winds are N/S:"Temp. [K]                                        |
-| 2:143796:D=1979010113:SPFH:2 m above gnd:kpds=51        | 105 | 2:anl:winds are N/S:"Specific humidity [kg/kg]                        |
-| 3:317756:D=1979010113:PRES:sfc:kpds=1                   |   1 | 0:anl:winds are N/S:"Pressure [Pa]                                    |
-| 4:491716:D=1979010113:UGRD:10 m above gnd:kpds=33       | 105 | 10:anl:winds are N/S:"u wind [m/s]                                    |
-| 5:625456:D=1979010113:VGRD:10 m above gnd:kpds=34       | 105 | 10:anl:winds are N/S:"v wind [m/s]                                    |
-| 6:759196:D=1979010113:DLWRF:sfc:kpds=205                |   1 | 0:anl:winds are N/S:"Downward longwave radiation flux [W/m^2]         |
-| 7:933156:D=1979010112:var153:sfc:kpds=153               |   1 | 0:0-1hr acc:winds are N/S:"undefined                                  |
-| 8:1087006:D=1979010113:CAPE:180-0 mb above gnd:kpds=157 | 116 | 46080:anl:winds are N/S:"Convective available potential energy [J/Kg] |
-| 9:1260966:D=1979010112:PEVAP:sfc:kpds=228               |   1 | 0:0-1hr acc:winds are N/S:"Potential evaporation [Kg/m^2]             |
-| 10:1414816:D=1979010112:APCP:sfc:kpds=61                |   1 | 0:0-1hr acc:winds are N/S:"Total precipitation [kg/m^2]               |
-| 11:1588776:D=1979010113:DSWRF:sfc:kpds=204              |   1 | 0:anl:winds are N/S:"Downward shortwave radiation flux [W/m^2]        |
+| 1979-01-01 13:00:00 |
+| 1979-01-01 14:00:00 |
+| 1979-01-01 15:00:00 |
+| 1979-01-01 16:00:00 |
+| 1979-01-01 17:00:00 |
+| 1979-01-01 18:00:00 |
 
-Org is ignoring 'verbatim' for some reason.  Maybe need to upgrade or report a bug?
+#+BEGIN_SRC R :results replace
+  tail( nldasDates)
+#+END_SRC
 
-Do this by hand for now.  See data/cdoPartab.
+#+RESULTS:
+| 2013-08-31 19:00:00 |
+| 2013-08-31 20:00:00 |
+| 2013-08-31 21:00:00 |
+| 2013-08-31 22:00:00 |
+| 2013-08-31 23:00:00 |
+| 2013-09-01 00:00:00 |
 
-#+BEGIN_SRC sh :session :value output verbatim
+When updating an existing collection one should specify the download
+date sequence as follows:
+
+#+CALL: nldasDates( fromYear= 2013, fromMonth= 7, fromDay= 5, fromHour= 0)
+
+#+RESULTS:
+
+src_R{head(nldasDates)}
+
+| 2013-07-05 00:00:00 |
+| 2013-07-05 01:00:00 |
+| 2013-07-05 02:00:00 |
+| 2013-07-05 03:00:00 |
+| 2013-07-05 04:00:00 |
+| 2013-07-05 05:00:00 |
+
+#+NAME: nldasDataUrls
+#+BEGIN_SRC R :file data/nldasDataUrls :results replace
+nldasDataUrls <-
+  paste(
+    baseUrl,
+    format( nldasDates, "%Y/%j/NLDAS_FORA0125_H.A%Y%m%d.%H00.002.grb*"),
+    ## format( nldasDates, "%Y/%j"),
+    ## "*.grb*",
+    sep= "/")
+#+END_SRC
+
+#+RESULTS: nldasDataUrls
+[[file:data/nldasDataUrls]]
+
+* Work out checksum verification using first URL
+
+#+NAME: firstNldasDataUrl
+#+BEGIN_SRC R
+  head( nldasDataUrls, 1)
+#+END_SRC
+
+#+NAME: nldasWget
+#+HEADER: :var url= firstNldasDataUrl()
+#+BEGIN_SRC sh :session :results value replace
+  wget \
+      --no-host-directories \
+      --cut-dirs=3 \
+      --directory-prefix=data \
+      --recursive \
+      --quiet \
+      --retry-connrefused \
+      --timestamping \
+      ${url}
+#+END_SRC
+
+Remember =--progress=dot:mega= in place of =--no-verbose=.
+
+
+#+NAME: nldasWgetResult
+#+HEADER: :var url= firstNldasDataUrl()
+#+BEGIN_SRC sh :session :results value replace
+    find data/$(echo -n ${url} | cut -d/ -f7-9) \
+        -name $(echo -n ${url} | cut -d/ -f10) 
+#+END_SRC
+
+#+RESULTS: nldasWgetResult
+| data/NLDAS_FORA0125_H.002/2013/186/NLDAS_FORA0125_H.A20130705.0000.002.grb     |
+| data/NLDAS_FORA0125_H.002/2013/186/NLDAS_FORA0125_H.A20130705.0000.002.grb.xml |
+
+
+
+* Download using GNU Parallel
+
+#+BEGIN_SRC sh :session *nldas* :noweb yes
+  parallel \
+      --jobs 4 \
+      -I '${url}' \
+      --retries 10 \
+      --keep-order \
+      '<<nldasWget>>; \
+      <<nldasWgetResult>>' \
+      ::: $(tail -n 4 data/nldasDataUrls) \
+      > data/parallelOutput
+#+END_SRC
+
+To read the entire file the =:::= argument above must be replaced by
+=::::= (four colons) and a bare file name.
+
+
+Incorporate the checksum verification
+
+#+NAME: parallelWget
+#+BEGIN_SRC sh :session :noweb yes :results replace
+  parallel \
+      --jobs 4 \
+      -I '${url}' \
+      --keep-order \
+      --retries 10 \
+      '<<nldasWget>>;
+      <<nldasWgetResult>> | 
+      tee data/parallelOutput |
+      xargs scripts/nldasGrbChecksum.r' \
+      ::: $(tail -n 4 data/nldasDataUrls)
+#+END_SRC
+
+
+#+RESULTS:
+
+      :::: data/nldasDataUrls
+
+* Download using GNU Parallel and SLURM
+
+#+BEGIN_SRC sh :eval no :noweb yes :shebang #!/bin/sh :tangle scripts/parallelWget.sh
+  module load parallel
+  parallel \
+      --jobs $SLURM_NTASKS \
+      -I '${url}' \
+      --keep-order \
+      --retries 10 \
+      'srun <<nldasWget>>;
+      <<nldasWgetResult>> | 
+      tee data/parallelOutput |
+      xargs scripts/nldasGrbChecksum.r' \
+      :::: data/nldasDataUrls \
+#+END_SRC
+
+#+BEGIN_SRC sh :session *nldas* :results replace
+  sbatch \
+      --ntasks 256 \
+      scripts/parallelWget.sh
+#+END_SRC
+
+#+RESULTS:
+|                               |
+| > Submitted batch job 5431304 |
+
+
+* Convert GRB metadata to CDO parameter table
+
+#+BEGIN_SRC sh :session :results output verbatim replace
+  ~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+      | perl -lpe 's/ \[/:/; s/[\]\"]//g' \
+      | cut -d: -f4,5,6,9,10
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+TMP:2 m above gnd:kpds=11,105,2:Temp.:K
+SPFH:2 m above gnd:kpds=51,105,2:Specific humidity:kg/kg
+PRES:sfc:kpds=1,1,0:Pressure:Pa
+UGRD:10 m above gnd:kpds=33,105,10:u wind:m/s
+VGRD:10 m above gnd:kpds=34,105,10:v wind:m/s
+DLWRF:sfc:kpds=205,1,0:Downward longwave radiation flux:W/m^2
+var153:sfc:kpds=153,1,0:undefined
+CAPE:180-0 mb above gnd:kpds=157,116,46080:Convective available potential energy:J/Kg
+PEVAP:sfc:kpds=228,1,0:Potential evaporation:Kg/m^2
+APCP:sfc:kpds=61,1,0:Total precipitation:kg/m^2
+DSWRF:sfc:kpds=204,1,0:Downward shortwave radiation flux:W/m^2
+#+end_example
+
+#+BEGIN_SRC sh :exports both :session :results output raw replace
+  echo '|-' 
+  echo '|variable|height|codes|description|units|'
+  echo '|-' 
+  ~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+      | perl -lpe 's/ \[/:/; s/[\]\"]//g' \
+      | cut -d: -f4,5,6,9,10 \
+      | perl -lne 's/:/\|/g; print "|$_|"'
+  echo '|-'
+#+END_SRC
+
+#+RESULTS:
+|----------+--------------------+--------------------+---------------------------------------+--------|
+| variable | height             | codes              | description                           | units  |
+|----------+--------------------+--------------------+---------------------------------------+--------|
+| TMP      | 2 m above gnd      | kpds=11,105,2      | Temp.                                 | K      |
+| SPFH     | 2 m above gnd      | kpds=51,105,2      | Specific humidity                     | kg/kg  |
+| PRES     | sfc                | kpds=1,1,0         | Pressure                              | Pa     |
+| UGRD     | 10 m above gnd     | kpds=33,105,10     | u wind                                | m/s    |
+| VGRD     | 10 m above gnd     | kpds=34,105,10     | v wind                                | m/s    |
+| DLWRF    | sfc                | kpds=205,1,0       | Downward longwave radiation flux      | W/m^2  |
+| var153   | sfc                | kpds=153,1,0       | undefined                             |        |
+| CAPE     | 180-0 mb above gnd | kpds=157,116,46080 | Convective available potential energy | J/Kg   |
+| PEVAP    | sfc                | kpds=228,1,0       | Potential evaporation                 | Kg/m^2 |
+| APCP     | sfc                | kpds=61,1,0        | Total precipitation                   | kg/m^2 |
+| DSWRF    | sfc                | kpds=204,1,0       | Downward shortwave radiation flux     | W/m^2  |
+|----------+--------------------+--------------------+---------------------------------------+--------|
+
+These correspond to the values we must give to CDO in a 'parameter table'.
+
+#+BEGIN_SRC sh :session :results output verbatim replace
   cat data/cdoPartab
 #+END_SRC
 
 #+RESULTS:
-|  11 | TMP    | air temperature at 2m [K]                    |
-|  51 | SPFH   | specific humidity [kg/kg]                    |
-|   1 | PRES   | pressure [Pa]                                |
-|  33 | UGRD   | u wind [m/s]                                 |
-|  34 | VGRD   | v wind [m/s]                                 |
-| 205 | DLWRF  | downward longwave radiation flux [W/m^2]     |
-| 153 | var153 | undefined                                    |
-| 157 | CAPE   | convective available potential energy [J/kg] |
-| 228 | PEVAP  | potential evaporation [kg/m^2]               |
-|  61 | APCP   | accumulated precipitation [mm]               |
-| 204 | DSWRF  | downward shortwave radiation [W/m^2]         |
+#+begin_example
+11	TMP	air temperature at 2m [K]
+51	SPFH	specific humidity [kg/kg]
+1	PRES	pressure [Pa]
+33	UGRD	u wind [m/s]
+34	VGRD	v wind [m/s]
+205	DLWRF	downward longwave radiation flux [W/m^2]
+153	var153	undefined
+157	CAPE	convective available potential energy [J/kg]
+228	PEVAP	potential evaporation [kg/m^2]
+61	APCP	accumulated precipitation [mm]
+204	DSWRF	downward shortwave radiation [W/m^2]
+#+end_example
 
 * Create a mask from the first day's data
   :PROPERTIES:
@@ -49,7 +284,7 @@ Do this by hand for now.  See data/cdoPartab.
   mkdir data/output
 #+END_SRC
 
-#+BEGIN_SRC sh :session *nldas* :results output
+#+BEGIN_SRC sh :session :results output replace
   gdalwarp -overwrite \
       -t_srs EPSG:4326 \
       -te -180 -90 180 90 \
@@ -183,6 +418,7 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 : Input file size is 4320, 2160
 : 0...10...20...30...40...50...60...70...80...90...100 - done.
 
+
 ** Use R!
 
 #+BEGIN_SRC R
@@ -275,6 +511,7 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 1918749
 1918750
 #+end_example
+
 
 * Get the bounding box and write CDO grid description
 
@@ -405,6 +642,104 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 : xinc     =    0.08333333
 : yfirst   =   25.00000260
 : yinc     =    0.08333333
+
+
+* Write makeflow file using Whisker templates			   :noexport:
+
+This will not work until =whisker= supports lambdas.
+
+#+BEGIN_SRC R :tangle tangle/Makeflow.R :tangle no
+  library( whisker)
+  library( plyr)
+  
+  nldasHours <- seq(
+    from= ISOdatetime(
+      year=  1979,
+      month=    1,
+      day=      1,
+      hour=    13,
+      min=      0,
+      sec=      0,
+      tz=   "GMT"),
+    to= as.POSIXct( Sys.Date() - 4 -1/24),
+    by= "hour")
+  
+  nldasDates <- seq(
+    from= as.Date( nldasHours[ 1]),
+    to=   as.Date( nldasHours[ length( nldasHours)]),
+    by= "day")
+#+END_SRC
+
+
+#+NAME: hourlyTemplate
+#+BEGIN_SRC mustache :eval no :tangle tangle/hourlyTemplate.mustache
+  {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc: {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{cdoGrid}}
+  {{cdoExecutable}} -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc
+#+END_SRC
+
+** TODO report R/noweb bug in pseudo-heredoc
+
+#+BEGIN_SRC R :noweb yes :eval no
+  template <- "<<hourlyTemplate>>"
+#+END_SRC
+
+
+** instead define snarf()
+
+#+BEGIN_SRC R :tangle/Makeflow.R
+  snarf <- function( fn) {
+    readChar( fn, file.info( fn)$size)
+  }
+#+END_SRC
+
+#+BEGIN_SRC R :tangle/Makeflow.R
+  template <- snarf( "tangle/hourlyTemplate.mustache")
+#+END_SRC
+
+#+BEGIN_SRC R :noweb yes :tangle/Makeflow.R :results output append :file Makeflow
+  headNldasHours <- head( nldasHours)
+  headNldasDates <- head( nldasDates)
+  
+  template <- "{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc:"
+  
+  
+  getHourlyWhiskerData <- function( POSIXct, ...) {
+    list(
+      Yj= format( POSIXct, "%Y%j"),
+      Ymd= format( POSIXct, "%Y%m%d"),
+      H= format( POSIXct, "%H"),
+      ...)
+  }
+  
+  renderHourlyWhiskerData <- function( POSIXct, template, ...) {
+    whisker.render( template, getHourlyWhiskerData( POSIXct, ...))
+  }
+  
+  
+  
+  laply(
+    .data= head( nldasHours),
+    .fun= renderHourlyWhiskerData,
+    template= template,
+    dataDir= "data/NLDAS_FORA0125_H.002")
+  
+  
+  dumpWhiskerOutput <- function( ..., file= "") {
+    cat( renderHourlyWhiskerData( ...), file= file)
+  }
+  
+  l_ply(
+    .data= head( nldasHours),
+    .fun= dumpWhiskerOutput,
+    template= template,
+    dataDir= "data/NLDAS_FORA0125_H.002")
+  
+#+END_SRC
+
+
+** TODO help implement lambdas in =whisker=
+
+
 
 * Combine annual files into all-time files
 
