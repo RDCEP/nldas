@@ -16,7 +16,7 @@ library( stringr)
 
 isValidChecksum <- function(
   grbFn,
-  xmlFn= paste( grbFn, sep=".", "xml")
+  xmlFn= paste( grbFn, sep=".", "xml"))
   {
     nldasMeta <-
       xmlParseDoc( xmlFn)
@@ -34,7 +34,7 @@ isValidChecksum <- function(
             intern= TRUE),
           pattern= " ",
           n= 3)[, 1])
-    checksumComputed != checksumExpected
+    checksumComputed == checksumExpected
   }
   
 if( !isValidChecksum( grbFn)) {

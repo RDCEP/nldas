@@ -1,0 +1,130 @@
+CORES=1
+projectDir=/project/joshuaelliott/nldas
+
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb 
+cdo -O -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb 
+cdo -O -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,tmax -timmax -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,tmin -timmin -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,precip -timsum -selname,APCP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,pres -timavg -selname,PRES $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,u -timavg -selname,UGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc
+ 
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmax.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,tmax -timmax -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmax.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmin.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,tmin -timmin -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmin.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.precip.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,precip -timsum -selname,APCP $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.precip.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.solar.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.solar.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.pres.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,pres -timavg -selname,PRES $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.pres.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.spfh.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.spfh.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.u.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,u -timavg -selname,UGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.u.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.v.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.v.nc
+
+$projectDir/data/annual/tmax_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmax.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.tmax.nc" | sort; echo $projectDir/data/annual/tmax_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/tmin_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmin.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.tmin.nc" | sort; echo $projectDir/data/annual/tmin_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/precip_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.precip.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.precip.nc" | sort; echo $projectDir/data/annual/precip_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/solar_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.solar.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.solar.nc" | sort; echo $projectDir/data/annual/solar_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/pres_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.pres.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.pres.nc" | sort; echo $projectDir/data/annual/pres_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/spfh_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.spfh.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.spfh.nc" | sort; echo $projectDir/data/annual/spfh_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/u_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.u.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.u.nc" | sort; echo $projectDir/data/annual/u_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/annual/v_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.v.nc 
+(find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.v.nc" | sort; echo $projectDir/data/annual/v_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+
+$projectDir/data/full/tmax_nldas_1979-2013_0125.nc4: $projectDir/data/annual/tmax_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "tmax_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/tmin_nldas_1979-2013_0125.nc4: $projectDir/data/annual/tmin_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "tmin_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/precip_nldas_1979-2013_0125.nc4: $projectDir/data/annual/precip_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "precip_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/precip_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/solar_nldas_1979-2013_0125.nc4: $projectDir/data/annual/solar_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "solar_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/solar_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/pres_nldas_1979-2013_0125.nc4: $projectDir/data/annual/pres_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "pres_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/pres_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/spfh_nldas_1979-2013_0125.nc4: $projectDir/data/annual/spfh_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "spfh_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/u_nldas_1979-2013_0125.nc4: $projectDir/data/annual/u_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "u_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/u_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+ 
+$projectDir/data/full/v_nldas_1979-2013_0125.nc4: $projectDir/data/annual/v_nldas_1979_0125.nc4 
+(find $projectDir/data/annual -name "v_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/v_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+
+ $projectDir/data/full/tmax_nldas_1979-2013.nc4: $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmax_nldas_1979-2013.nc4
+
+$projectDir/data/full/tmin_nldas_1979-2013.nc4: $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmin_nldas_1979-2013.nc4
+
+$projectDir/data/full/precip_nldas_1979-2013.nc4: $projectDir/data/full/precip_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/precip_nldas_1979-2013_0125.nc4 $projectDir/data/full/precip_nldas_1979-2013.nc4
+
+$projectDir/data/full/solar_nldas_1979-2013.nc4: $projectDir/data/full/solar_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/solar_nldas_1979-2013_0125.nc4 $projectDir/data/full/solar_nldas_1979-2013.nc4
+
+$projectDir/data/full/pres_nldas_1979-2013.nc4: $projectDir/data/full/pres_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/pres_nldas_1979-2013_0125.nc4 $projectDir/data/full/pres_nldas_1979-2013.nc4
+
+$projectDir/data/full/spfh_nldas_1979-2013.nc4: $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4 $projectDir/data/full/spfh_nldas_1979-2013.nc4
+
+$projectDir/data/full/u_nldas_1979-2013.nc4: $projectDir/data/full/u_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/u_nldas_1979-2013_0125.nc4 $projectDir/data/full/u_nldas_1979-2013.nc4
+
+$projectDir/data/full/v_nldas_1979-2013.nc4: $projectDir/data/full/v_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/v_nldas_1979-2013_0125.nc4 $projectDir/data/full/v_nldas_1979-2013.nc4
+

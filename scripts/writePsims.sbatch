@@ -5,7 +5,7 @@
 # #SBATCH --partition=sandyb,westmere
 # #SBATCH --partition=bigmem,amd
 #SBATCH --constraint=ib
-#SBATCH --time=8:00:00
+#SBATCH --time=60
 #SBATCH --exclusive
 
 START=$(date)

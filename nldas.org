@@ -73,18 +73,17 @@ Using the default arguments will populate the data as follows:
 When updating an existing collection one should specify the download
 date sequence as follows:
 
-#+CALL: nldasDates( fromYear= 2013, fromMonth= 7, fromDay= 5, fromHour= 0)
+#+CALL: nldasDates( fromYear= 2013, fromMonth= 9, fromDay= 21, fromHour= 1)
 
 #+RESULTS:
 
-src_R{head(nldasDates)}
-
-| 2013-07-05 00:00:00 |
-| 2013-07-05 01:00:00 |
-| 2013-07-05 02:00:00 |
-| 2013-07-05 03:00:00 |
-| 2013-07-05 04:00:00 |
-| 2013-07-05 05:00:00 |
+src_R[:results replace value]{head(nldasDates)}
+| 2013-09-21 01:00:00 |
+| 2013-09-21 02:00:00 |
+| 2013-09-21 03:00:00 |
+| 2013-09-21 04:00:00 |
+| 2013-09-21 05:00:00 |
+| 2013-09-21 06:00:00 |
 
 #+NAME: nldasDataUrls
 #+BEGIN_SRC R :file data/nldasDataUrls :results replace
@@ -158,7 +157,7 @@ To read the entire file the =:::= argument above must be replaced by
 Incorporate the checksum verification
 
 #+NAME: parallelWget
-#+BEGIN_SRC sh :session :noweb yes :results replace
+#+BEGIN_SRC sh :session *shell* :noweb yes :results replace
   parallel \
       --jobs 4 \
       -I '${url}' \
@@ -168,15 +167,23 @@ Incorporate the checksum verification
       <<nldasWgetResult>> | 
       tee data/parallelOutput |
       xargs scripts/nldasGrbChecksum.r' \
+      :::: data/nldasDataUrls
+#+END_SRC
+
+#+RESULTS: parallelWget
+
+
+This fragment can be switched into the above code block for quicker
+testing.
+
+#+BEGIN_SRC sh :eval no
       ::: $(tail -n 4 data/nldasDataUrls)
 #+END_SRC
 
 
-#+RESULTS:
+* TODO Download using GNU Parallel and SLURM
 
-      :::: data/nldasDataUrls
-
-* Download using GNU Parallel and SLURM
+The script does not tangle properly.  The noweb portion does not expand correctly.
 
 #+BEGIN_SRC sh :eval no :noweb yes :shebang #!/bin/sh :tangle scripts/parallelWget.sh
   module load parallel
@@ -644,9 +651,8 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 : yinc     =    0.08333333
 
 
-* Write makeflow file using Whisker templates			   :noexport:
+* Write makeflow file using Whisker templates
 
-This will not work until =whisker= supports lambdas.
 
 #+BEGIN_SRC R :tangle tangle/Makeflow.R :tangle no
   library( whisker)
@@ -661,23 +667,26 @@ This will not work until =whisker= supports lambdas.
       min=      0,
       sec=      0,
       tz=   "GMT"),
-    to= as.POSIXct( Sys.Date() - 4 -1/24),
+    ## to= as.POSIXct( Sys.Date() - 4 -1/24),
+    to= strptime( "201326123", format= "%Y%j%H", tz="GMT"),
     by= "hour")
   
   nldasDates <- seq(
     from= as.Date( nldasHours[ 1]),
-    to=   as.Date( nldasHours[ length( nldasHours)]),
+    ## to=   as.Date( nldasHours[ length( nldasHours)]),
+    to= as.Date( "2013261", format= "%Y%j"),
     by= "day")
 #+END_SRC
 
 
 #+NAME: hourlyTemplate
 #+BEGIN_SRC mustache :eval no :tangle tangle/hourlyTemplate.mustache
+
   {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc: {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{cdoGrid}}
-  {{cdoExecutable}} -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc
+  cdo -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc
 #+END_SRC
 
-** TODO report R/noweb bug in pseudo-heredoc
+** TODO report Org/R/noweb bug in pseudo-heredoc
 
 #+BEGIN_SRC R :noweb yes :eval no
   template <- "<<hourlyTemplate>>"
@@ -692,56 +701,695 @@ This will not work until =whisker= supports lambdas.
   }
 #+END_SRC
 
-#+BEGIN_SRC R :tangle/Makeflow.R
+#+BEGIN_SRC R :tangle/Makeflow.R :tangle no :eval no
+  ## template <- "{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc:"
+
   template <- snarf( "tangle/hourlyTemplate.mustache")
 #+END_SRC
 
-#+BEGIN_SRC R :noweb yes :tangle/Makeflow.R :results output append :file Makeflow
-  headNldasHours <- head( nldasHours)
-  headNldasDates <- head( nldasDates)
-  
-  template <- "{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc:"
-  
-  
+
+** Need an abstraction on top of whisker
+
+#+BEGIN_SRC R :tangle/Makeflow.R
   getHourlyWhiskerData <- function( POSIXct, ...) {
     list(
-      Yj= format( POSIXct, "%Y%j"),
+      Yj= format( POSIXct, "%Y/%j"),
       Ymd= format( POSIXct, "%Y%m%d"),
       H= format( POSIXct, "%H"),
       ...)
   }
   
-  renderHourlyWhiskerData <- function( POSIXct, template, ...) {
-    whisker.render( template, getHourlyWhiskerData( POSIXct, ...))
+  renderHourlyWhiskerData <- function( POSIXct, template, partials, ...) {
+    data <- getHourlyWhiskerData( POSIXct, ...)
+    whisker.render(
+      template,
+      data= data,
+      partials= partials)
+  }  
+  
+  dumpWhiskerOutput <- function(
+    ...,
+    renderFunction= renderHourlyWhiskerData,
+    file= "")
+  {
+    cat(
+      renderFunction( ...),
+      file= file,
+      append= TRUE)
   }
-  
-  
-  
-  laply(
-    .data= head( nldasHours),
-    .fun= renderHourlyWhiskerData,
-    template= template,
-    dataDir= "data/NLDAS_FORA0125_H.002")
-  
-  
-  dumpWhiskerOutput <- function( ..., file= "") {
-    cat( renderHourlyWhiskerData( ...), file= file)
-  }
-  
+#+END_SRC  
+
+
+** Defer remap and conversion from GRB				   :noexport:
+
+The remap operator and its parameters are missing.
+
+#+BEGIN_SRC R :tangle/Makeflow.R :results output replace :tangle no :eval no
   l_ply(
     .data= head( nldasHours),
     .fun= dumpWhiskerOutput,
     template= template,
-    dataDir= "data/NLDAS_FORA0125_H.002")
+    dataDir= "/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002")
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+ 
+/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc: /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb 
+cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc
+
+/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc: /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb 
+cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc
+
+/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc: /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb 
+cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc
+
+/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc: /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb 
+cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc
+
+/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc: /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb 
+cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc
+
+/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc: /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb 
+cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc
+#+end_example
+
+
+#+BEGIN_SRC R :eval no
+  file.remove( "Makeflow")
+  l_ply(
+    .data= head( nldasHours, 35),
+    .fun= dumpWhiskerOutput,
+    template= template,
+    dataDir= "/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002",
+    file= "Makeflow")
+#+END_SRC
+
+*** TODO help implement lambdas in =whisker=
+
+
+* Daily aggregates
+
+** Create daily merge files
+
+#+BEGIN_SRC R
+  dailyMergeFileTemplate <-
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.merge.nc"
   
+  hourlyGrbFileTemplate <-
+    "$projectDir/{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb"
+  
+  ## dailyMergeRuleTemplate <- paste(
+  ##   "{{> dailyMergeFile}}: {{#hours}}{{> hourlyGrbFiles}} {{/hours}}",
+  ##   "cdo -t data/cdoPartab mergetime {{#hours}}{{> hourlyGrbFiles}} {{/hours}}{{> dailyMergeFile}}",
+  ##   "\n",
+  ##   sep= "\n\n")
+  
+  dailyMergeRuleTemplate <- c(
+    "\n{{> dailyMergeFile}}: {{#hours}}{{> hourlyGrbFiles}} {{/hours}}\n",
+    "\ncdo -O -f nc -t $projectDir/data/cdoPartab mergetime {{#hours}}{{> hourlyGrbFiles}} {{/hours}}{{> dailyMergeFile}}\n")
+  
+  ## makeflowRecipe <-
+  ##   whisker.render(
+  ##     template= dailyMergeRuleTemplate,
+  ##     data= list(
+  ##       hours= unname(
+  ##         rowSplit(
+  ##           data.frame(
+  ##             getHourlyWhiskerData(
+  ##               head( nldasHours, n=24))))),
+  ##       dataDir= "data/NLDAS_FORA0125_H.002",
+  ##       dailyYj= "1979/001",
+  ##       dailyYmd= "19790101"),    
+  ##     partials= list(
+  ##       hourlyGrbFiles= hourlyGrbFileTemplate,
+  ##       dailyMergeFile= dailyMergeFileTemplate))
+  
+  getDailyWhiskerData <- function( POSIXct, ...) {
+    nldasDate <- unique( as.Date( POSIXct))
+    list(
+      dailyYj= format( nldasDate, "%Y/%j"),
+      dailyYmd= format( nldasDate, "%Y%m%d"),
+      hours= unname(
+        rowSplit(
+          data.frame(
+            getHourlyWhiskerData( POSIXct)))),
+      ...)
+  }
+  
+  ## renderDailyWhiskerData <- function( POSIXct, template, partials, ...) {
+  ##   data <- list(
+  ##     unlist( getDailyWhiskerData( unique( as.Date( POSIXct)))),
+  ##     hours= unname(
+  ##       rowSplit(
+  ##         data.frame(
+  ##           getHourlyWhiskerData( POSIXct)))),
+  ##     ...)
+  ##   whisker.render(
+  ##     template,
+  ##     data= data,
+  ##     partials= partials)
+  ## }
+  
+  renderDailyWhiskerData <- function( POSIXct, template, partials, ...) {
+    data <- getDailyWhiskerData( POSIXct[,1], ...)
+    whisker.render(
+      template,
+      data= data,
+      partials= partials)
+  }
+  
+  ## renderDailyWhiskerData(
+  ##   data.frame( head( nldasHours)),
+  ##   dailyMergeRuleTemplate,
+  ##   partials= list(
+  ##     hourlyGrbFiles= hourlyGrbFileTemplate,
+  ##     dailyMergeFile= dailyMergeFileTemplate),
+  ##   dataDir= "data/NLDAS_FORA0125_H.002")
+  
+  
+  ## dailyRules <- daply(
+  ##   .data= head( data.frame( POSIXct= nldasHours), n=35),
+  ##   .variables= .( as.Date( POSIXct)),
+  ##   .fun= renderDailyWhiskerData,
+  ##   template= dailyMergeRuleTemplate,
+  ##   partials= list(
+  ##     hourlyGrbFiles= hourlyGrbFileTemplate,
+  ##     dailyMergeFile= dailyMergeFileTemplate),
+  ##   dataDir= "data/NLDAS_FORA0125_H.002")
+#+END_SRC
+
+#+BEGIN_SRC R :results output replace  
+  d_ply(
+    .data= head( data.frame( POSIXct= nldasHours), n=35),
+    .variables= .( as.Date( POSIXct)),
+    .fun= dumpWhiskerOutput,
+    renderFunction= renderDailyWhiskerData,
+    template= dailyMergeRuleTemplate,
+    partials= list(
+      hourlyGrbFiles= hourlyGrbFileTemplate,
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002")
+#+END_SRC
+
+#+RESULTS:
+:  
+: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb 
+: cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+: 
+: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb 
+: cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+
+#+NAME: newMakeflowFile
+#+BEGIN_SRC R :var fn= "Makeflow"
+  file.remove( fn)
+  cat(
+    "CORES=1",
+    "projectDir=/project/joshuaelliott/nldas\n",
+    sep= "\n",
+    file= fn) 
+#+END_SRC
+
+#+CALL: newMakeflowFile( "Makeflow.test")
+
+#+NAME: writeMergetimeRulesTest
+#+BEGIN_SRC R :tangle tangle/Makeflow.R :noweb yes
+  d_ply(
+    .data= head( data.frame( POSIXct= nldasHours), n=35),
+    ## .data= head(
+    ##   nldasHours[ nldasHours > as.POSIXlt(
+    ##     "1979-01-01 23:00:00",
+    ##     tz= "GMT")],
+    ##   24),
+    .variables= .( as.Date( POSIXct)),
+    .fun= dumpWhiskerOutput,
+    renderFunction= renderDailyWhiskerData,
+    template= dailyMergeRuleTemplate,
+    partials= list(
+      hourlyGrbFiles= hourlyGrbFileTemplate,
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002",
+    file= "Makeflow.test")
+#+END_SRC
+
+#+CALL: newMakeflowFile( "Makeflow")
+
+#+NAME: writeMergetimeRules
+#+BEGIN_SRC R :tangle tangle/Makeflow.R
+  d_ply( 
+    .data= data.frame( POSIXct= nldasHours),
+    .variables= .( as.Date( POSIXct)),
+    .fun= dumpWhiskerOutput,
+    .parallel= TRUE,
+    renderFunction= renderDailyWhiskerData,
+    template= dailyMergeRuleTemplate,
+    partials= list(
+      hourlyGrbFiles= hourlyGrbFileTemplate,
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002",
+    file= "Makeflow")
+#+END_SRC
+
+*** TODO Decide whether to tangle & snarf or simply declare templates
+
+This one is not used.
+
+#+NAME: dailyTemplate
+#+BEGIN_SRC mustache :eval no :tangle tangle/dailyTemplate.mustache
+{{dataDir}}/{{Ym}}/NLDAS_FORA0125_H.A{{Ymd}}.merge.nc:  {{dataDir}}/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.nc
+	$cdoExecutable -f nc mergetime $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
 #+END_SRC
 
 
-** TODO help implement lambdas in =whisker=
+** Aggregate hourly values into daily variables
+
+#+BEGIN_SRC mustache :eval no :tangle tangle/dailyAggRuleTemplate.mustache :tangle no :export no
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,tmin -timmin -selname,TMP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,precip -timsum -selname,APCP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,pres -timavg -selname,PRES {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc: {{> dailyMergeFile}}
+cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc
+#+END_SRC
+
+#+BEGIN_SRC R
+  dailyAggRuleTemplate <- paste(
+    "",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,tmin -timmin -selname,TMP {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,precip -timsum -selname,APCP {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,pres -timavg -selname,PRES {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc\n",
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc: {{> dailyMergeFile}}",
+    "cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc\n",
+      sep= "\n")
+  
+  renderDailyAggData <- function( nldasDate, template, partials, ...) {
+    data <- list(
+      dailyYj= format( nldasDate, "%Y/%j"),
+      dailyYmd= format( nldasDate, "%Y%m%d"),
+      ...)
+    whisker.render(
+      template,
+      data= data,
+      partials= partials)
+  }
+#+END_SRC
+  
+#+BEGIN_SRC R :results output replace
+  cat( renderDailyAggData(
+    head( nldasDates, n=1),
+    template= dailyAggRuleTemplate,
+    partials= list(
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002"))
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+ 
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,tmax -timmax -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,tmin -timmin -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,precip -timsum -selname,APCP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,pres -timavg -selname,PRES $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,u -timavg -selname,UGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc
+#+end_example
+
+#+NAME: writeAggregationRulesTest
+#+BEGIN_SRC R :export no
+  cat(
+    laply(
+      .data= head( nldasDates, 2),
+      .fun= renderDailyAggData,
+      template= dailyAggRuleTemplate,
+      partials= list(
+        dailyMergeFile= dailyMergeFileTemplate),
+      dataDir= "data/NLDAS_FORA0125_H.002"),
+    file= "Makeflow.test",
+    append= TRUE)
+#+END_SRC
+
+#+NAME: writeAggregationRules
+#+BEGIN_SRC R :export no
+  cat(
+    laply(
+      .data= nldasDates,
+      .fun= renderDailyAggData,
+      template= dailyAggRuleTemplate,
+      partials= list(
+        dailyMergeFile= dailyMergeFileTemplate),
+      dataDir= "data/NLDAS_FORA0125_H.002"),
+    file= "Makeflow",
+    append= TRUE)
+#+END_SRC
+
+*** DONE cdo setzaxis,surface
+
+*** TODO drive daily aggregations with a data structure and a simpler template
 
 
+** Merge individual variables into annual files
 
-* Combine annual files into all-time files
+#+BEGIN_SRC R
+  psimsVars <- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
+  
+  annualTargetTemplate <-
+    "{{outputDir}}/{{var}}_nldas_{{year}}_0125.nc4"
+  
+  annualSourceTemplate <-
+    "{{inputDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.{{var}}.nc"
+  
+  annualRecipeTemplate <- c(
+    "\n{{> annualTarget}}: {{# days}}{{> annualSource}} {{/ days}}\n",
+    "\n(find {{inputDir}}/{{year}} -name \"*.{{var}}.nc\" | sort; echo {{> annualTarget}}) | xargs cdo -O -f nc4 -z zip mergetime\n")
+  
+  renderAnnualRecipe <- function(
+    ## var,  year,
+    df,
+    template= annualRecipeTemplate,
+    partials= list(
+      annualTarget= annualTargetTemplate,
+      annualSource= annualSourceTemplate),
+    days= nldasDates[ format( nldasDates, "%Y") == df$year],
+    ...)
+  {
+    data <- with( df, list(
+      var= var,
+      year= year,
+      days= unname(
+        rowSplit(
+          data.frame(
+            var= var,
+            dailyYj= format( days, "%Y/%j"),
+            dailyYmd= format( days, "%Y%m%d")))),
+      inputDir= "$projectDir/data/NLDAS_FORA0125_H.002",
+      outputDir= "$projectDir/data/annual"))
+    whisker.render(
+      template,
+      data,
+      partials)
+  }
+#+END_SRC
+
+#+BEGIN_SRC R :results replace output
+  cat( renderAnnualRecipe( data.frame( var= "tmax", year= 1979)), "\n")    
+#+END_SRC
+
+#+RESULTS:
+: 
+: $projectDir/data/full/tmax_nldas_1979_0125.nc4: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/003/NLDAS_FORA0125_H.A19790103.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/004/NLDAS_FORA0125_H.A19790104.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/005/NLDAS_FORA0125_H.A19790105.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/006/NLDAS_FORA0125_H.A19790106.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/007/NLDAS_FORA0125_H.A19790107.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/008/NLDAS_FORA0125_H.A19790108.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/009/NLDAS_FORA0125_H.A19790109.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/010/NLDAS_FORA0125_H.A19790110.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/011/NLDAS_FORA0125_H.A19790111.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/012/NLDAS_FORA0125_H.A19790112.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/013/NLDAS_FORA0125_H.A19790113.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/014/NLDAS_FORA0125_H.A19790114.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/015/NLDAS_FORA0125_H.A19790115.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/016/NLDAS_FORA0125_H.A19790116.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/017/NLDAS_FORA0125_H.A19790117.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/018/NLDAS_FORA0125_H.A19790118.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/019/NLDAS_FORA0125_H.A19790119.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/020/NLDAS_FORA0125_H.A19790120.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/021/NLDAS_FORA0125_H.A19790121.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/022/NLDAS_FORA0125_H.A19790122.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/023/NLDAS_FORA0125_H.A19790123.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/024/NLDAS_FORA0125_H.A19790124.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/025/NLDAS_FORA0125_H.A19790125.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/026/NLDAS_FORA0125_H.A19790126.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/027/NLDAS_FORA0125_H.A19790127.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/028/NLDAS_FORA0125_H.A19790128.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/029/NLDAS_FORA0125_H.A19790129.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/030/NLDAS_FORA0125_H.A19790130.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/031/NLDAS_FORA0125_H.A19790131.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/032/NLDAS_FORA0125_H.A19790201.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/033/NLDAS_FORA0125_H.A19790202.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/034/NLDAS_FORA0125_H.A19790203.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/035/NLDAS_FORA0125_H.A19790204.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/036/NLDAS_FORA0125_H.A19790205.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/037/NLDAS_FORA0125_H.A19790206.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/038/NLDAS_FORA0125_H.A19790207.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/039/NLDAS_FORA0125_H.A19790208.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/040/NLDAS_FORA0125_H.A19790209.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/041/NLDAS_FORA0125_H.A19790210.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/042/NLDAS_FORA0125_H.A19790211.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/043/NLDAS_FORA0125_H.A19790212.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/044/NLDAS_FORA0125_H.A19790213.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/045/NLDAS_FORA0125_H.A19790214.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/046/NLDAS_FORA0125_H.A19790215.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/047/NLDAS_FORA0125_H.A19790216.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/048/NLDAS_FORA0125_H.A19790217.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/049/NLDAS_FORA0125_H.A19790218.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/050/NLDAS_FORA0125_H.A19790219.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/051/NLDAS_FORA0125_H.A19790220.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/052/NLDAS_FORA0125_H.A19790221.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/053/NLDAS_FORA0125_H.A19790222.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/054/NLDAS_FORA0125_H.A19790223.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/055/NLDAS_FORA0125_H.A19790224.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/056/NLDAS_FORA0125_H.A19790225.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/057/NLDAS_FORA0125_H.A19790226.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/058/NLDAS_FORA0125_H.A19790227.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/059/NLDAS_FORA0125_H.A19790228.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/060/NLDAS_FORA0125_H.A19790301.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/061/NLDAS_FORA0125_H.A19790302.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/062/NLDAS_FORA0125_H.A19790303.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/063/NLDAS_FORA0125_H.A19790304.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/064/NLDAS_FORA0125_H.A19790305.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/065/NLDAS_FORA0125_H.A19790306.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/066/NLDAS_FORA0125_H.A19790307.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/067/NLDAS_FORA0125_H.A19790308.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/068/NLDAS_FORA0125_H.A19790309.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/069/NLDAS_FORA0125_H.A19790310.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/070/NLDAS_FORA0125_H.A19790311.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/071/NLDAS_FORA0125_H.A19790312.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/072/NLDAS_FORA0125_H.A19790313.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/073/NLDAS_FORA0125_H.A19790314.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/074/NLDAS_FORA0125_H.A19790315.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/075/NLDAS_FORA0125_H.A19790316.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/076/NLDAS_FORA0125_H.A19790317.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/077/NLDAS_FORA0125_H.A19790318.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/078/NLDAS_FORA0125_H.A19790319.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/079/NLDAS_FORA0125_H.A19790320.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/080/NLDAS_FORA0125_H.A19790321.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/081/NLDAS_FORA0125_H.A19790322.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/082/NLDAS_FORA0125_H.A19790323.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/083/NLDAS_FORA0125_H.A19790324.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/084/NLDAS_FORA0125_H.A19790325.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/085/NLDAS_FORA0125_H.A19790326.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/086/NLDAS_FORA0125_H.A19790327.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/087/NLDAS_FORA0125_H.A19790328.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/088/NLDAS_FORA0125_H.A19790329.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/089/NLDAS_FORA0125_H.A19790330.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/090/NLDAS_FORA0125_H.A19790331.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/091/NLDAS_FORA0125_H.A19790401.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/092/NLDAS_FORA0125_H.A19790402.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/093/NLDAS_FORA0125_H.A19790403.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/094/NLDAS_FORA0125_H.A19790404.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/095/NLDAS_FORA0125_H.A19790405.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/096/NLDAS_FORA0125_H.A19790406.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/097/NLDAS_FORA0125_H.A19790407.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/098/NLDAS_FORA0125_H.A19790408.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/099/NLDAS_FORA0125_H.A19790409.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/100/NLDAS_FORA0125_H.A19790410.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/101/NLDAS_FORA0125_H.A19790411.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/102/NLDAS_FORA0125_H.A19790412.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/103/NLDAS_FORA0125_H.A19790413.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/104/NLDAS_FORA0125_H.A19790414.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/105/NLDAS_FORA0125_H.A19790415.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/106/NLDAS_FORA0125_H.A19790416.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/107/NLDAS_FORA0125_H.A19790417.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/108/NLDAS_FORA0125_H.A19790418.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/109/NLDAS_FORA0125_H.A19790419.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/110/NLDAS_FORA0125_H.A19790420.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/111/NLDAS_FORA0125_H.A19790421.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/112/NLDAS_FORA0125_H.A19790422.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/113/NLDAS_FORA0125_H.A19790423.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/114/NLDAS_FORA0125_H.A19790424.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/115/NLDAS_FORA0125_H.A19790425.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/116/NLDAS_FORA0125_H.A19790426.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/117/NLDAS_FORA0125_H.A19790427.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/118/NLDAS_FORA0125_H.A19790428.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/119/NLDAS_FORA0125_H.A19790429.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/120/NLDAS_FORA0125_H.A19790430.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/121/NLDAS_FORA0125_H.A19790501.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/122/NLDAS_FORA0125_H.A19790502.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/123/NLDAS_FORA0125_H.A19790503.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/124/NLDAS_FORA0125_H.A19790504.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/125/NLDAS_FORA0125_H.A19790505.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/126/NLDAS_FORA0125_H.A19790506.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/127/NLDAS_FORA0125_H.A19790507.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/128/NLDAS_FORA0125_H.A19790508.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/129/NLDAS_FORA0125_H.A19790509.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/130/NLDAS_FORA0125_H.A19790510.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/131/NLDAS_FORA0125_H.A19790511.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/132/NLDAS_FORA0125_H.A19790512.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/133/NLDAS_FORA0125_H.A19790513.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/134/NLDAS_FORA0125_H.A19790514.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/135/NLDAS_FORA0125_H.A19790515.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/136/NLDAS_FORA0125_H.A19790516.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/137/NLDAS_FORA0125_H.A19790517.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/138/NLDAS_FORA0125_H.A19790518.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/139/NLDAS_FORA0125_H.A19790519.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/140/NLDAS_FORA0125_H.A19790520.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/141/NLDAS_FORA0125_H.A19790521.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/142/NLDAS_FORA0125_H.A19790522.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/143/NLDAS_FORA0125_H.A19790523.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/144/NLDAS_FORA0125_H.A19790524.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/145/NLDAS_FORA0125_H.A19790525.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/146/NLDAS_FORA0125_H.A19790526.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/147/NLDAS_FORA0125_H.A19790527.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/148/NLDAS_FORA0125_H.A19790528.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/149/NLDAS_FORA0125_H.A19790529.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/150/NLDAS_FORA0125_H.A19790530.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/151/NLDAS_FORA0125_H.A19790531.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/152/NLDAS_FORA0125_H.A19790601.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/153/NLDAS_FORA0125_H.A19790602.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/154/NLDAS_FORA0125_H.A19790603.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/155/NLDAS_FORA0125_H.A19790604.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/156/NLDAS_FORA0125_H.A19790605.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/157/NLDAS_FORA0125_H.A19790606.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/158/NLDAS_FORA0125_H.A19790607.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/159/NLDAS_FORA0125_H.A19790608.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/160/NLDAS_FORA0125_H.A19790609.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/161/NLDAS_FORA0125_H.A19790610.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/162/NLDAS_FORA0125_H.A19790611.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/163/NLDAS_FORA0125_H.A19790612.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/164/NLDAS_FORA0125_H.A19790613.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/165/NLDAS_FORA0125_H.A19790614.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/166/NLDAS_FORA0125_H.A19790615.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/167/NLDAS_FORA0125_H.A19790616.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/168/NLDAS_FORA0125_H.A19790617.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/169/NLDAS_FORA0125_H.A19790618.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/170/NLDAS_FORA0125_H.A19790619.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/171/NLDAS_FORA0125_H.A19790620.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/172/NLDAS_FORA0125_H.A19790621.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/173/NLDAS_FORA0125_H.A19790622.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/174/NLDAS_FORA0125_H.A19790623.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/175/NLDAS_FORA0125_H.A19790624.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/176/NLDAS_FORA0125_H.A19790625.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/177/NLDAS_FORA0125_H.A19790626.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/178/NLDAS_FORA0125_H.A19790627.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/179/NLDAS_FORA0125_H.A19790628.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/180/NLDAS_FORA0125_H.A19790629.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/181/NLDAS_FORA0125_H.A19790630.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/182/NLDAS_FORA0125_H.A19790701.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/183/NLDAS_FORA0125_H.A19790702.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/184/NLDAS_FORA0125_H.A19790703.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/185/NLDAS_FORA0125_H.A19790704.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/186/NLDAS_FORA0125_H.A19790705.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/187/NLDAS_FORA0125_H.A19790706.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/188/NLDAS_FORA0125_H.A19790707.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/189/NLDAS_FORA0125_H.A19790708.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/190/NLDAS_FORA0125_H.A19790709.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/191/NLDAS_FORA0125_H.A19790710.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/192/NLDAS_FORA0125_H.A19790711.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/193/NLDAS_FORA0125_H.A19790712.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/194/NLDAS_FORA0125_H.A19790713.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/195/NLDAS_FORA0125_H.A19790714.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/196/NLDAS_FORA0125_H.A19790715.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/197/NLDAS_FORA0125_H.A19790716.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/198/NLDAS_FORA0125_H.A19790717.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/199/NLDAS_FORA0125_H.A19790718.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/200/NLDAS_FORA0125_H.A19790719.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/201/NLDAS_FORA0125_H.A19790720.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/202/NLDAS_FORA0125_H.A19790721.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/203/NLDAS_FORA0125_H.A19790722.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/204/NLDAS_FORA0125_H.A19790723.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/205/NLDAS_FORA0125_H.A19790724.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/206/NLDAS_FORA0125_H.A19790725.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/207/NLDAS_FORA0125_H.A19790726.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/208/NLDAS_FORA0125_H.A19790727.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/209/NLDAS_FORA0125_H.A19790728.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/210/NLDAS_FORA0125_H.A19790729.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/211/NLDAS_FORA0125_H.A19790730.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/212/NLDAS_FORA0125_H.A19790731.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/213/NLDAS_FORA0125_H.A19790801.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/214/NLDAS_FORA0125_H.A19790802.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/215/NLDAS_FORA0125_H.A19790803.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/216/NLDAS_FORA0125_H.A19790804.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/217/NLDAS_FORA0125_H.A19790805.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/218/NLDAS_FORA0125_H.A19790806.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/219/NLDAS_FORA0125_H.A19790807.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/220/NLDAS_FORA0125_H.A19790808.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/221/NLDAS_FORA0125_H.A19790809.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/222/NLDAS_FORA0125_H.A19790810.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/223/NLDAS_FORA0125_H.A19790811.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/224/NLDAS_FORA0125_H.A19790812.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/225/NLDAS_FORA0125_H.A19790813.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/226/NLDAS_FORA0125_H.A19790814.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/227/NLDAS_FORA0125_H.A19790815.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/228/NLDAS_FORA0125_H.A19790816.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/229/NLDAS_FORA0125_H.A19790817.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/230/NLDAS_FORA0125_H.A19790818.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/231/NLDAS_FORA0125_H.A19790819.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/232/NLDAS_FORA0125_H.A19790820.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/233/NLDAS_FORA0125_H.A19790821.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/234/NLDAS_FORA0125_H.A19790822.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/235/NLDAS_FORA0125_H.A19790823.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/236/NLDAS_FORA0125_H.A19790824.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/237/NLDAS_FORA0125_H.A19790825.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/238/NLDAS_FORA0125_H.A19790826.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/239/NLDAS_FORA0125_H.A19790827.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/240/NLDAS_FORA0125_H.A19790828.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/241/NLDAS_FORA0125_H.A19790829.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/242/NLDAS_FORA0125_H.A19790830.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/243/NLDAS_FORA0125_H.A19790831.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/244/NLDAS_FORA0125_H.A19790901.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/245/NLDAS_FORA0125_H.A19790902.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/246/NLDAS_FORA0125_H.A19790903.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/247/NLDAS_FORA0125_H.A19790904.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/248/NLDAS_FORA0125_H.A19790905.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/249/NLDAS_FORA0125_H.A19790906.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/250/NLDAS_FORA0125_H.A19790907.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/251/NLDAS_FORA0125_H.A19790908.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/252/NLDAS_FORA0125_H.A19790909.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/253/NLDAS_FORA0125_H.A19790910.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/254/NLDAS_FORA0125_H.A19790911.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/255/NLDAS_FORA0125_H.A19790912.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/256/NLDAS_FORA0125_H.A19790913.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/257/NLDAS_FORA0125_H.A19790914.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/258/NLDAS_FORA0125_H.A19790915.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/259/NLDAS_FORA0125_H.A19790916.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/260/NLDAS_FORA0125_H.A19790917.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/261/NLDAS_FORA0125_H.A19790918.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/262/NLDAS_FORA0125_H.A19790919.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/263/NLDAS_FORA0125_H.A19790920.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/264/NLDAS_FORA0125_H.A19790921.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/265/NLDAS_FORA0125_H.A19790922.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/266/NLDAS_FORA0125_H.A19790923.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/267/NLDAS_FORA0125_H.A19790924.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/268/NLDAS_FORA0125_H.A19790925.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/269/NLDAS_FORA0125_H.A19790926.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/270/NLDAS_FORA0125_H.A19790927.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/271/NLDAS_FORA0125_H.A19790928.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/272/NLDAS_FORA0125_H.A19790929.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/273/NLDAS_FORA0125_H.A19790930.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/274/NLDAS_FORA0125_H.A19791001.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/275/NLDAS_FORA0125_H.A19791002.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/276/NLDAS_FORA0125_H.A19791003.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/277/NLDAS_FORA0125_H.A19791004.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/278/NLDAS_FORA0125_H.A19791005.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/279/NLDAS_FORA0125_H.A19791006.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/280/NLDAS_FORA0125_H.A19791007.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/281/NLDAS_FORA0125_H.A19791008.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/282/NLDAS_FORA0125_H.A19791009.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/283/NLDAS_FORA0125_H.A19791010.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/284/NLDAS_FORA0125_H.A19791011.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/285/NLDAS_FORA0125_H.A19791012.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/286/NLDAS_FORA0125_H.A19791013.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/287/NLDAS_FORA0125_H.A19791014.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/288/NLDAS_FORA0125_H.A19791015.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/289/NLDAS_FORA0125_H.A19791016.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/290/NLDAS_FORA0125_H.A19791017.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/291/NLDAS_FORA0125_H.A19791018.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/292/NLDAS_FORA0125_H.A19791019.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/293/NLDAS_FORA0125_H.A19791020.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/294/NLDAS_FORA0125_H.A19791021.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/295/NLDAS_FORA0125_H.A19791022.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/296/NLDAS_FORA0125_H.A19791023.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/297/NLDAS_FORA0125_H.A19791024.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/298/NLDAS_FORA0125_H.A19791025.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/299/NLDAS_FORA0125_H.A19791026.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/300/NLDAS_FORA0125_H.A19791027.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/301/NLDAS_FORA0125_H.A19791028.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/302/NLDAS_FORA0125_H.A19791029.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/303/NLDAS_FORA0125_H.A19791030.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/304/NLDAS_FORA0125_H.A19791031.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/305/NLDAS_FORA0125_H.A19791101.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/306/NLDAS_FORA0125_H.A19791102.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/307/NLDAS_FORA0125_H.A19791103.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/308/NLDAS_FORA0125_H.A19791104.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/309/NLDAS_FORA0125_H.A19791105.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/310/NLDAS_FORA0125_H.A19791106.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/311/NLDAS_FORA0125_H.A19791107.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/312/NLDAS_FORA0125_H.A19791108.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/313/NLDAS_FORA0125_H.A19791109.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/314/NLDAS_FORA0125_H.A19791110.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/315/NLDAS_FORA0125_H.A19791111.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/316/NLDAS_FORA0125_H.A19791112.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/317/NLDAS_FORA0125_H.A19791113.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/318/NLDAS_FORA0125_H.A19791114.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/319/NLDAS_FORA0125_H.A19791115.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/320/NLDAS_FORA0125_H.A19791116.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/321/NLDAS_FORA0125_H.A19791117.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/322/NLDAS_FORA0125_H.A19791118.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/323/NLDAS_FORA0125_H.A19791119.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/324/NLDAS_FORA0125_H.A19791120.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/325/NLDAS_FORA0125_H.A19791121.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/326/NLDAS_FORA0125_H.A19791122.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/327/NLDAS_FORA0125_H.A19791123.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/328/NLDAS_FORA0125_H.A19791124.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/329/NLDAS_FORA0125_H.A19791125.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/330/NLDAS_FORA0125_H.A19791126.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/331/NLDAS_FORA0125_H.A19791127.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/332/NLDAS_FORA0125_H.A19791128.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/333/NLDAS_FORA0125_H.A19791129.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/334/NLDAS_FORA0125_H.A19791130.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/335/NLDAS_FORA0125_H.A19791201.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/336/NLDAS_FORA0125_H.A19791202.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/337/NLDAS_FORA0125_H.A19791203.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/338/NLDAS_FORA0125_H.A19791204.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/339/NLDAS_FORA0125_H.A19791205.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/340/NLDAS_FORA0125_H.A19791206.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/341/NLDAS_FORA0125_H.A19791207.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/342/NLDAS_FORA0125_H.A19791208.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/343/NLDAS_FORA0125_H.A19791209.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/344/NLDAS_FORA0125_H.A19791210.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/345/NLDAS_FORA0125_H.A19791211.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/346/NLDAS_FORA0125_H.A19791212.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/347/NLDAS_FORA0125_H.A19791213.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/348/NLDAS_FORA0125_H.A19791214.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/349/NLDAS_FORA0125_H.A19791215.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/350/NLDAS_FORA0125_H.A19791216.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/351/NLDAS_FORA0125_H.A19791217.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/352/NLDAS_FORA0125_H.A19791218.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/353/NLDAS_FORA0125_H.A19791219.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/354/NLDAS_FORA0125_H.A19791220.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/355/NLDAS_FORA0125_H.A19791221.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/356/NLDAS_FORA0125_H.A19791222.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/357/NLDAS_FORA0125_H.A19791223.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/358/NLDAS_FORA0125_H.A19791224.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/359/NLDAS_FORA0125_H.A19791225.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/360/NLDAS_FORA0125_H.A19791226.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/361/NLDAS_FORA0125_H.A19791227.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/362/NLDAS_FORA0125_H.A19791228.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/363/NLDAS_FORA0125_H.A19791229.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/364/NLDAS_FORA0125_H.A19791230.tmax.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/365/NLDAS_FORA0125_H.A19791231.tmax.nc 
+: (find $projectDir/data/NLDAS_FORA0125_H.002/1979 -name "*.tmax.nc" | sort; echo $projectDir/data/full/tmax_nldas_1979_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+
+
+#+NAME: writeAnnualRulesTest
+#+BEGIN_SRC R :export no :noweb yes
+  cat(
+    unlist(
+      dlply(
+        .data= expand.grid(
+          var= psimsVars,
+          year= 1979),
+        .variables= c( "var", "year"),
+        .fun= renderAnnualRecipe,
+        days= nldasDates[1:2])),
+    file= "Makeflow.test",
+    append= TRUE)
+#+END_SRC
+
+#+NAME: writeAnnualRules
+#+BEGIN_SRC R :export no :noweb yes
+    cat(
+      unlist(
+        dlply(
+          .data= expand.grid(
+            var= psimsVars,
+            year= 1979:2013),
+          .variables= c( "var", "year"),
+          .fun= renderAnnualRecipe)),
+      file= "Makeflow",
+      append= TRUE)
+#+END_SRC
+
+
+#+BEGIN_SRC R :exports none :eval no
+  ## No idea what this was for.
+
+  dailies <- list.files(
+    "data/NLDAS_FORA0125_H.002/1982",
+    "NLDAS_FORA0125_H.A1982[0-9]{4}\\.tmin\\.nc",
+    full.names= TRUE,
+    recursive= TRUE)
+#+END_SRC
+
+** Merge individual variables into all-time files
+
+#+BEGIN_SRC R
+  psimsVars <- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
+  
+  allTimeTargetTemplate <-
+    "{{outputDir}}/{{var}}_nldas_1979-2013_0125.nc4"
+  
+  allTimeSourceTemplate <-
+    "{{annualDir}}/{{var}}_nldas_{{year}}_0125.nc4"
+  
+  allTimeRecipeTemplate <- c(
+    "\n{{> allTimeTarget}}: {{# years}}{{> allTimeSource}} {{/ years}}\n",
+    "\n(find {{annualDir}} -name \"{{var}}_nldas_????_0125.nc4\" | sort; echo {{> allTimeTarget}}) | xargs cdo -O -f nc4 -z zip mergetime\n")
+  
+  renderAllTimeRecipe <- function(
+    var,
+    template= allTimeRecipeTemplate,
+    partials= list(
+      allTimeTarget= allTimeTargetTemplate,
+      allTimeSource= allTimeSourceTemplate),
+    years= 1979:2013,
+    ...)
+  {
+    data <- list(
+      var= var,
+      years= iteratelist( years, value= "year"),
+      annualDir= "$projectDir/data/annual",
+      outputDir= "$projectDir/data/full",
+      ...)
+    whisker.render(
+      template,
+      data,
+      partials)
+  }
+#+END_SRC
+
+#+BEGIN_SRC R :results replace output
+  cat( renderAllTimeRecipe( "tmax" ), "\n")    
+#+END_SRC
+
+#+RESULTS:
+: 
+: $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4: $projectDir/data/annual/tmax_nldas_1979_0125.nc4 $projectDir/data/annual/tmax_nldas_1980_0125.nc4 $projectDir/data/annual/tmax_nldas_1981_0125.nc4 $projectDir/data/annual/tmax_nldas_1982_0125.nc4 $projectDir/data/annual/tmax_nldas_1983_0125.nc4 $projectDir/data/annual/tmax_nldas_1984_0125.nc4 $projectDir/data/annual/tmax_nldas_1985_0125.nc4 $projectDir/data/annual/tmax_nldas_1986_0125.nc4 $projectDir/data/annual/tmax_nldas_1987_0125.nc4 $projectDir/data/annual/tmax_nldas_1988_0125.nc4 $projectDir/data/annual/tmax_nldas_1989_0125.nc4 $projectDir/data/annual/tmax_nldas_1990_0125.nc4 $projectDir/data/annual/tmax_nldas_1991_0125.nc4 $projectDir/data/annual/tmax_nldas_1992_0125.nc4 $projectDir/data/annual/tmax_nldas_1993_0125.nc4 $projectDir/data/annual/tmax_nldas_1994_0125.nc4 $projectDir/data/annual/tmax_nldas_1995_0125.nc4 $projectDir/data/annual/tmax_nldas_1996_0125.nc4 $projectDir/data/annual/tmax_nldas_1997_0125.nc4 $projectDir/data/annual/tmax_nldas_1998_0125.nc4 $projectDir/data/annual/tmax_nldas_1999_0125.nc4 $projectDir/data/annual/tmax_nldas_2000_0125.nc4 $projectDir/data/annual/tmax_nldas_2001_0125.nc4 $projectDir/data/annual/tmax_nldas_2002_0125.nc4 $projectDir/data/annual/tmax_nldas_2003_0125.nc4 $projectDir/data/annual/tmax_nldas_2004_0125.nc4 $projectDir/data/annual/tmax_nldas_2005_0125.nc4 $projectDir/data/annual/tmax_nldas_2006_0125.nc4 $projectDir/data/annual/tmax_nldas_2007_0125.nc4 $projectDir/data/annual/tmax_nldas_2008_0125.nc4 $projectDir/data/annual/tmax_nldas_2009_0125.nc4 $projectDir/data/annual/tmax_nldas_2010_0125.nc4 $projectDir/data/annual/tmax_nldas_2011_0125.nc4 $projectDir/data/annual/tmax_nldas_2012_0125.nc4 $projectDir/data/annual/tmax_nldas_2013_0125.nc4 
+: (find $projectDir/data/annual -name "tmax_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+
+#+NAME: writeAllTimeRulesTest
+#+BEGIN_SRC R :export no :eval no
+  cat(
+    laply(
+      .data= psimsVars,
+      .fun= renderAllTimeRecipe,
+      years= 1979),
+    file= "Makeflow.test",
+    append= TRUE)
+#+END_SRC
+
+#+CALL: newMakeflowFile()
+
+#+NAME: writeAllTimeRules
+#+BEGIN_SRC R :export no
+  cat(
+    laply(
+      .data= psimsVars,
+      .fun= renderAllTimeRecipe),
+    file= "Makeflow",
+    append= TRUE)
+#+END_SRC
+
+
+** Remap the final outputs to $5'$
+
+#+BEGIN_SRC R
+  remapTargetTemplate <-
+    "{{outputDir}}/{{var}}_nldas_1979-2013.nc4"
+#+END_SRC
+
+
+*** These dead ends do not work but I don't understand why 	   :noexport:
+    :PROPERTIES:
+    :eval:     no
+    :END:
+
+#+BEGIN_SRC R  
+  remapRecipeTemplate <- c(
+    "",
+    "{{> remapTarget}}: {{> allTimeTarget}}",
+    "cdo remapnn,data/nldas_5min.grid {{> allTimeTarget}} {{> remapTarget}}")
+
+  remapRecipeTemplate <- paste(
+    "",
+    "{{> remapTarget}}: {{> allTimeTarget}}\n",
+    "",
+    "cdo remapnn,data/nldas_5min.grid {{> allTimeTarget}} {{> remapTarget}}",
+    sep= "\n")
+#+END_SRC  
+
+#+BEGIN_SRC R :results output replace
+  cat(
+    whisker.render(
+      template= remapRecipeTemplate,
+      data= list(
+        var= "tmax",
+        inputDir= "$projectDir/data/NLDAS_FORA0125_H.002",
+        outputDir= "$projectDir/data/full"),
+      partials= list(
+        allTimeTarget= allTimeTargetTemplate,
+        remapTarget= remapTargetTemplate)),
+    "\n")
+#+END_SRC
+
+
+#+BEGIN_SRC R :eval no :export no
+  cat(
+    laply(
+      .data= psimsVars,
+      .fun= whisker.render,
+      template= remapRecipeTemplate,
+      data= list(
+        var= "tmax",
+        inputDir= "/project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002",
+        outputDir= "/project/joshuaelliott/nldas/data/full"),
+      partials= list(
+        allTimeTarget= allTimeTargetTemplate,
+        remapTarget= remapTargetTemplate)),
+    "\n")
+#+END_SRC
+
+
+*** This works
+
+#+BEGIN_SRC R
+  remapRecipeData <- unname(
+    rowSplit(
+      data.frame(
+        var= psimsVars,
+        inputDir= "$projectDir/data/annual",
+        outputDir= "$projectDir/data/full")))
+  
+  ## remapRecipeTemplate <- "
+  ## {{# remapRecipeData}}
+  ## {{> remapTarget}}: {{> allTimeTarget}}
+  ##
+  ## cdo remapnn,data/nldas_5min.grid {{> allTimeTarget}} {{> remapTarget}}
+  ##
+  ## {{/ remapRecipeData}}"
+  
+  remapRecipeTemplate <- c(
+  "{{# remapRecipeData}}",
+  "{{> remapTarget}}: {{> allTimeTarget}}",
+  "",
+  "\ncdo remapnn,$projectDir/data/nldas_5min.grid {{> allTimeTarget}} {{> remapTarget}}",
+  "",
+  "{{/ remapRecipeData}}")
+  ##remapRecipeTemplate <- paste( remapRecipeTemplate, sep= "\n")
+  remapRecipeTemplate <- paste( remapRecipeTemplate, collapse= "\n")
+                              
+    
+  remapRecipes <-
+    whisker.render(
+      remapRecipeTemplate,
+      partials= list(
+        allTimeTarget= allTimeTargetTemplate,
+        remapTarget= remapTargetTemplate))
+#+END_SRC
+
+#+BEGIN_SRC R :results output replace verbatim
+  cat( remapRecipes)
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+$projectDir/data/full/tmax_nldas_1979-2013.nc4: $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmax_nldas_1979-2013.nc4
+
+$projectDir/data/full/tmin_nldas_1979-2013.nc4: $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmin_nldas_1979-2013.nc4
+
+$projectDir/data/full/precip_nldas_1979-2013.nc4: $projectDir/data/full/precip_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/precip_nldas_1979-2013_0125.nc4 $projectDir/data/full/precip_nldas_1979-2013.nc4
+
+$projectDir/data/full/solar_nldas_1979-2013.nc4: $projectDir/data/full/solar_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/solar_nldas_1979-2013_0125.nc4 $projectDir/data/full/solar_nldas_1979-2013.nc4
+
+$projectDir/data/full/pres_nldas_1979-2013.nc4: $projectDir/data/full/pres_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/pres_nldas_1979-2013_0125.nc4 $projectDir/data/full/pres_nldas_1979-2013.nc4
+
+$projectDir/data/full/spfh_nldas_1979-2013.nc4: $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4 $projectDir/data/full/spfh_nldas_1979-2013.nc4
+
+$projectDir/data/full/u_nldas_1979-2013.nc4: $projectDir/data/full/u_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/u_nldas_1979-2013_0125.nc4 $projectDir/data/full/u_nldas_1979-2013.nc4
+
+$projectDir/data/full/v_nldas_1979-2013.nc4: $projectDir/data/full/v_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/v_nldas_1979-2013_0125.nc4 $projectDir/data/full/v_nldas_1979-2013.nc4
+#+end_example
+
+#+NAME: writeRemapRules
+#+BEGIN_SRC R :export no
+  cat( "\n", remapRecipes, file= "Makeflow", append= TRUE)
+#+END_SRC
+
+#+NAME: writeRemapRulesTest
+#+BEGIN_SRC R :export no
+  cat( "\n", remapRecipes, file= "Makeflow.test", append= TRUE)
+#+END_SRC
+
+
+* Combine annual files into all-time files			   :noexport:
+  :PROPERTIES:
+  :eval:     no
+  :END:
 
 #+BEGIN_SRC sh
   set -x
@@ -755,6 +1403,69 @@ This will not work until =whisker= supports lambdas.
 
 This should perhaps be done on compute nodes but it really does not
 cost much computatationally.
+
+* Set up a small test
+
+First two days of data.
+
+** Refresh the test Makeflow
+
+#+CALL: newMakeflowFile( "Makeflow.test")
+
+#+NAME: refreshTestMakeflow
+#+BEGIN_SRC R :noweb yes :tangle tangle/Makeflow.R
+  <<writeMergetimeRulesTest>>
+  <<writeAggregationRulesTest>>
+  <<writeAnnualRulesTest>>
+  <<writeAllTimeRulesTest>>
+  <<writeRemapRulesTest>>
+#+END_SRC
+
+So far we have only specified the first two days of data.
+
+** Visualize the test Makeflow
+
+#+NAME: makeflowTestDot
+#+BEGIN_SRC sh :session *shell*
+  makeflow -D dot Makeflow.test >  Makeflow.test.dot
+#+END_SRC
+
+Edit the DOT file by hand to make labels shorter.
+
+#+NAME: renderMakeflowTestDotPng
+#+BEGIN_SRC sh  :results file replace  :file Makeflow.test.png :session 
+  cat Makeflow.test.edited.dot | dot -T png -o Makeflow.test.png
+#+END_SRC
+
+#+RESULTS: renderMakeflowTestDotPng
+[[file:Makeflow.test.png]]
+
+#+NAME: renderMakeflowTestDotSvg
+#+BEGIN_SRC sh  :results file replace  :file Makeflow.test.svg :session 
+  cat Makeflow.test.edited.dot | dot -T svg -o Makeflow.test.svg
+#+END_SRC
+
+#+RESULTS: renderMakeflowTestDotSvg
+[[file:Makeflow.test.svg]]
+
+** Run test Makeflow
+
+#+BEGIN_SRC sh :session *shell*
+  ## PATH=~/local/cctools/bin:$PATH
+  makeflow -c Makeflow.test
+  slurm_submit_workers --cores 0 -p "--time=60" midway-login2 9123 4
+  makeflow -Tworkqueue-sharedfs Makeflow.test
+#+END_SRC
+
+
+* Run the full Makeflow
+
+#+BEGIN_SRC sh :session *shell* :eval no
+  ## PATH=~/local/cctools/bin:$PATH
+  makeflow -c
+  slurm_submit_workers --cores 0 -p "--time=60" midway-login2 9123 4
+  makeflow -Tworkqueue-sharedfs 
+#+END_SRC
 
 
 * Clean up intermediate data
