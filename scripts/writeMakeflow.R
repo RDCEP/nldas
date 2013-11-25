@@ -1,70 +1,110 @@
-## date <- as.Date( "1979-01-01")
 
-date <- seq(
-  from= as.Date( "1979-01-01"),
-  ## to= as.Date( "1979-12-31"),
-  to=   as.Date( "2013-07-04"),
+library( whisker)
+library( plyr)
+library( doMC)
+registerDoMC(4)
+
+nldasHours <- seq(
+  from= ISOdatetime(
+    year=  fromYear,
+    month= fromMonth,
+    day=   fromDay,
+    hour=  fromHour,
+    min=      0,
+    sec=      0,
+    tz=   "GMT"),
+  ## to= as.POSIXct( Sys.Date() - 4 -1/24),
+  to= strptime( sprintf( "%s23", lastFullDay), format= "%Y%j%H", tz="GMT"),
+  by= "hour")
+
+nldasDates <- seq(
+  from= as.Date( nldasHours[ 1]),
+  ## to=   as.Date( nldasHours[ length( nldasHours)]),
+  to= as.Date( lastFullDay, format= "%Y%j"),
   by= "day")
 
-snarfFile <- function( fn) {
-  readChar( fn, file.info( fn)$size)
-}
+d_ply(
+  .data= head( data.frame( POSIXct= nldasHours), n=35),
+  ## .data= head(
+  ##   nldasHours[ nldasHours > as.POSIXlt(
+  ##     "1979-01-01 23:00:00",
+  ##     tz= "GMT")],
+  ##   24),
+  .variables= .( as.Date( POSIXct)),
+  .fun= dumpWhiskerOutput,
+  renderFunction= renderDailyWhiskerData,
+  template= dailyMergeRuleTemplate,
+  partials= list(
+    hourlyGrbFiles= hourlyGrbFileTemplate,
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002",
+  file= "Makeflow.test")
+cat(
+  laply(
+    .data= head( nldasDates, 2),
+    .fun= renderDailyAggData,
+    template= dailyAggRuleTemplate,
+    partials= list(
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002"),
+  file= "Makeflow.test",
+  append= TRUE)
+cat(
+  unlist(
+    dlply(
+      .data= expand.grid(
+        var= psimsVars,
+        year= 1979),
+      .variables= c( "var", "year"),
+      .fun= renderAnnualRecipe,
+      days= nldasDates[1:2])),
+  file= "Makeflow.test",
+  append= TRUE)
+cat(
+  laply(
+    .data= psimsVars,
+    .fun= renderAllTimeRecipe,
+    years= 1979),
+  file= "Makeflow.test",
+  append= TRUE)
+cat( "\n", remapRecipes, file= "Makeflow.test", append= TRUE)
 
-## maybe/someday implement this
-
-## hourlyTemplate <-
-##   "$dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc: $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $cdoGrid
-## 	$cdoExecutable -f nc $cdoRemapArgs $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.grb $dataDir/%1$s/NLDAS_FORA0125_H.A%2$s.0000.002.nc"
-
-makeflowHeader <-   snarfFile( "data/nldas.makeflow.header")
-makeflowTemplate <- readLines( "data/nldas.makeflow.sprintf")
-
-## 1979/004  %1$s
-## 19790104 %2$s
-
-createHourlyMakeflow <- function(
-  dateVector,
-  makeflowHeader=   "data/nldas.makeflow.header",
-  makeflowTemplate= "data/nldas.makeflow.sprintf")
-{
-  makeflowLines <- lapply( 
-    readLines( makeflowTemplate),
-    sprintf,
-    format( dateVector, "%Y/%j"),
-    format( dateVector, "%Y%m%d"))
-  makeflowStanza <- lapply(
-    1:length( dateVector),
-    function( ix) lapply(
-      makeflowLines, 
-      function( x) x[[ ix]]))
-  c(
-    snarfFile( makeflowHeader),
-    unlist( makeflowStanza))
-}
-
-writeHourlyMakeflow <- function(
-  dateVector,
-  makeflowFilename= format(
-    dateVector[ length( dateVector)],
-    "scripts/nldas%Y%j.makeflow"),
-  append= FALSE,
-  ...)
-{
-  cat(
-    createHourlyMakeflow( dateVector, ...),
-    file= makeflowFilename,
-    sep= "\n",
-    append= append)
-  makeflowFilename
-}
-
-failedDates <- sort( as.Date(
-  c( "2007/004", "1990/020", "1982/046"),
-  format= "%Y/%j"))
-
-writeHourlyMakeflow( failedDates, "scripts/failedHourly.makeflow")
-
-writeHourlyMakeflow(
-  date, "scripts/dailyAgg.makeflow",
-  makeflowHeader=   "data/dailyAgg.makeflow.header")
-  makeflowTemplate= "data/dailyAgg.makeflow.sprintf")
+d_ply( 
+  .data= data.frame( POSIXct= nldasHours),
+  .variables= .( as.Date( POSIXct)),
+  .fun= dumpWhiskerOutput,
+  .parallel= TRUE,
+  renderFunction= renderDailyWhiskerData,
+  template= dailyMergeRuleTemplate,
+  partials= list(
+    hourlyGrbFiles= hourlyGrbFileTemplate,
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002",
+  file= "Makeflow")
+cat(
+  laply(
+    .data= nldasDates,
+    .fun= renderDailyAggData,
+    template= dailyAggRuleTemplate,
+    partials= list(
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002"),
+  file= "Makeflow",
+  append= TRUE)
+cat(
+  unlist(
+    dlply(
+      .data= expand.grid(
+        var= psimsVars,
+        year= 2013), ##1979:2013),
+      .variables= c( "var", "year"),
+      .fun= renderAnnualRecipe)),
+  file= "Makeflow",
+  append= TRUE)
+cat(
+  laply(
+    .data= psimsVars,
+    .fun= renderAllTimeRecipe),
+  file= "Makeflow",
+  append= TRUE)
+cat( "\n", remapRecipes, file= "Makeflow", append= TRUE)

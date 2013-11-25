@@ -186,7 +186,7 @@ testing.
 * TODO Download using GNU Parallel and SLURM
 
 
-#+BEGIN_SRC sh :eval no :noweb yes :shebang #!/bin/sh :tangle scripts/parallelWget.sh
+#+BEGIN_SRC sh :eval no :noweb yes :shebang #!/bin/sh :tangle tangle/parallelWget.sh
   module load parallel
   parallel \
       --jobs $SLURM_NTASKS \
@@ -201,7 +201,11 @@ testing.
       :::: data/nldasDataUrls
 #+END_SRC
 
-#+BEGIN_SRC sh :session *shell* :results output replace
+#+HEADER: :session *shell*
+#+HEADER: :results output replace 
+#+HEADER: :shebang #!/bin/sh 
+#+HEADER: :tangle tangle/parallelWget.sbatch
+#+BEGIN_SRC sh 
   sbatch \
       --ntasks=32 \
       --exclusive \
@@ -669,7 +673,7 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 #+HEADER: :var fromDay=      1 
 #+HEADER: :var fromHour=    13
 #+HEADER: :var lastFullDay= "2013306"
-#+BEGIN_SRC R :tangle tangle/Makeflow.R :tangle no
+#+BEGIN_SRC R :tangle tangle/writeMakeflow.R
   library( whisker)
   library( plyr)
   library( doMC)
@@ -715,13 +719,13 @@ Use the above like so to avoid processing data that is already aggregated.
 
 ** instead define snarf()
 
-#+BEGIN_SRC R :tangle/Makeflow.R
+#+BEGIN_SRC R :tangle/writeMakeflow.R
   snarf <- function( fn) {
     readChar( fn, file.info( fn)$size)
   }
 #+END_SRC
 
-#+BEGIN_SRC R :tangle/Makeflow.R :tangle no :eval yes
+#+BEGIN_SRC R :tangle/writeMakeflow.R :eval yes
   ## template <- "{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc:"
 
   template <- snarf( "tangle/hourlyTemplate.mustache")
@@ -730,7 +734,7 @@ Use the above like so to avoid processing data that is already aggregated.
 
 ** Need an abstraction on top of whisker
 
-#+BEGIN_SRC R :tangle/Makeflow.R
+#+BEGIN_SRC R :tangle/writeMakeflow.R
   getHourlyWhiskerData <- function( POSIXct, ...) {
     list(
       Yj= format( POSIXct, "%Y/%j"),
@@ -764,7 +768,7 @@ Use the above like so to avoid processing data that is already aggregated.
 
 The remap operator and its parameters are missing.
 
-#+BEGIN_SRC R :tangle/Makeflow.R :results output replace :tangle no :eval no
+#+BEGIN_SRC R :tangle/writeMakeflow.R :results output replace :tangle no :eval no
   l_ply(
     .data= head( nldasHours),
     .fun= dumpWhiskerOutput,
@@ -933,7 +937,7 @@ cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS
 #+CALL: newMakeflowFile( "Makeflow.test")
 
 #+NAME: writeMergetimeRulesTest
-#+BEGIN_SRC R :tangle tangle/Makeflow.R :noweb yes
+#+BEGIN_SRC R :tangle no
   d_ply(
     .data= head( data.frame( POSIXct= nldasHours), n=35),
     ## .data= head(
@@ -955,7 +959,7 @@ cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS
 #+CALL: newMakeflowFile( "Makeflow")
 
 #+NAME: writeMergetimeRules
-#+BEGIN_SRC R :tangle tangle/Makeflow.R
+#+BEGIN_SRC R :tangle tangle/writeMakeflow.R :tangle no
   d_ply( 
     .data= data.frame( POSIXct= nldasHours),
     .variables= .( as.Date( POSIXct)),
@@ -1430,7 +1434,7 @@ First two days of data.
 #+CALL: newMakeflowFile( "Makeflow.test")
 
 #+NAME: refreshTestMakeflow
-#+BEGIN_SRC R :noweb yes :tangle tangle/Makeflow.R
+#+BEGIN_SRC R :noweb yes :tangle tangle/writeMakeflow.R
   <<writeMergetimeRulesTest>>
   <<writeAggregationRulesTest>>
   <<writeAnnualRulesTest>>
@@ -1482,7 +1486,7 @@ Edit the DOT file by hand to make labels shorter.
 #+CALL: newMakeflowFile( "Makeflow")
 
 #+NAME: refreshMakeflow
-#+BEGIN_SRC R :noweb yes :tangle tangle/Makeflow.R
+#+BEGIN_SRC R :noweb yes :tangle tangle/writeMakeflow.R
   <<writeMergetimeRules>>
   <<writeAggregationRules>>
   <<writeAnnualRules>>
