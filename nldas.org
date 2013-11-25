@@ -1,9 +1,8 @@
-#+PROPERTY: session *R*
+#+PROPERTY: session *R:3*
 #+PROPERTY: results silent
 #+PROPERTY: exports both
 
 * Initialize the R session
-  - Note taken on [2013-09-03 Tue 15:29]
 
 #+BEGIN_SRC R
   library( XML)
@@ -99,6 +98,7 @@ nldasDataUrls <-
 #+RESULTS: nldasDataUrls
 [[file:data/nldasDataUrls]]
 
+
 * Work out checksum verification using first URL
 
 #+NAME: firstNldasDataUrl
@@ -159,6 +159,8 @@ Incorporate the checksum verification
 #+NAME: parallelWget
 #+BEGIN_SRC sh :session *shell* :noweb yes :results replace
   parallel \
+      --joblog log/parallel.log \
+      --resume \
       --jobs 4 \
       -I '${url}' \
       --keep-order \
@@ -183,7 +185,6 @@ testing.
 
 * TODO Download using GNU Parallel and SLURM
 
-The script does not tangle properly.  The noweb portion does not expand correctly.
 
 #+BEGIN_SRC sh :eval no :noweb yes :shebang #!/bin/sh :tangle scripts/parallelWget.sh
   module load parallel
@@ -192,22 +193,29 @@ The script does not tangle properly.  The noweb portion does not expand correctl
       -I '${url}' \
       --keep-order \
       --retries 10 \
-      'srun <<nldasWget>>;
+      'srun --exclusive -N1 -n1 \
+        <<nldasWget>>;
       <<nldasWgetResult>> | 
       tee data/parallelOutput |
       xargs scripts/nldasGrbChecksum.r' \
-      :::: data/nldasDataUrls \
+      :::: data/nldasDataUrls
 #+END_SRC
 
-#+BEGIN_SRC sh :session *nldas* :results replace
+#+BEGIN_SRC sh :session *shell* :results output replace
   sbatch \
-      --ntasks 256 \
+      --ntasks=32 \
+      --exclusive \
       scripts/parallelWget.sh
 #+END_SRC
 
 #+RESULTS:
-|                               |
-| > Submitted batch job 5431304 |
+: 
+: > > Submitted batch job 6973182
+
+It works better now but still experienced some failures and could not
+always log in to the first node.  I am assuming that the latter was a
+SLURM hiccup, so this should be tested again.  It seems like all of
+the tasks may have been running on the first node.
 
 
 * Convert GRB metadata to CDO parameter table
@@ -281,6 +289,7 @@ These correspond to the values we must give to CDO in a 'parameter table'.
 61	APCP	accumulated precipitation [mm]
 204	DSWRF	downward shortwave radiation [W/m^2]
 #+end_example
+
 
 * Create a mask from the first day's data
   :PROPERTIES:
@@ -409,6 +418,7 @@ Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
 Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
   NoData Value=255
 #+end_example
+
 
 * Convert byte values to a binary mask
 
@@ -653,31 +663,41 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 
 * Write makeflow file using Whisker templates
 
-
+#+NAME: nldasHours
+#+HEADER: :var fromYear=  1979
+#+HEADER: :var fromMonth=    1 
+#+HEADER: :var fromDay=      1 
+#+HEADER: :var fromHour=    13
+#+HEADER: :var lastFullDay= "2013306"
 #+BEGIN_SRC R :tangle tangle/Makeflow.R :tangle no
   library( whisker)
   library( plyr)
+  library( doMC)
+  registerDoMC(4)
   
   nldasHours <- seq(
     from= ISOdatetime(
-      year=  1979,
-      month=    1,
-      day=      1,
-      hour=    13,
+      year=  fromYear,
+      month= fromMonth,
+      day=   fromDay,
+      hour=  fromHour,
       min=      0,
       sec=      0,
       tz=   "GMT"),
     ## to= as.POSIXct( Sys.Date() - 4 -1/24),
-    to= strptime( "201326123", format= "%Y%j%H", tz="GMT"),
+    to= strptime( sprintf( "%s23", lastFullDay), format= "%Y%j%H", tz="GMT"),
     by= "hour")
   
   nldasDates <- seq(
     from= as.Date( nldasHours[ 1]),
     ## to=   as.Date( nldasHours[ length( nldasHours)]),
-    to= as.Date( "2013261", format= "%Y%j"),
+    to= as.Date( lastFullDay, format= "%Y%j"),
     by= "day")
 #+END_SRC
 
+Use the above like so to avoid processing data that is already aggregated.
+
+#+CALL: nldasHours( fromYear= 2013, fromMonth= 9, fromDay= 19, fromHour= 0)
 
 #+NAME: hourlyTemplate
 #+BEGIN_SRC mustache :eval no :tangle tangle/hourlyTemplate.mustache
@@ -701,7 +721,7 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
   }
 #+END_SRC
 
-#+BEGIN_SRC R :tangle/Makeflow.R :tangle no :eval no
+#+BEGIN_SRC R :tangle/Makeflow.R :tangle no :eval yes
   ## template <- "{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc:"
 
   template <- snarf( "tangle/hourlyTemplate.mustache")
@@ -1155,28 +1175,24 @@ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FOR
 
 #+NAME: writeAnnualRules
 #+BEGIN_SRC R :export no :noweb yes
-    cat(
-      unlist(
-        dlply(
-          .data= expand.grid(
-            var= psimsVars,
-            year= 1979:2013),
-          .variables= c( "var", "year"),
-          .fun= renderAnnualRecipe)),
-      file= "Makeflow",
-      append= TRUE)
+  cat(
+    unlist(
+      dlply(
+        .data= expand.grid(
+          var= psimsVars,
+          year= 2013), ##1979:2013),
+        .variables= c( "var", "year"),
+        .fun= renderAnnualRecipe)),
+    file= "Makeflow",
+    append= TRUE)
 #+END_SRC
 
+*** TODO Automate the value of =year= argument as a function of =nldasHours= or =nldasDates=.
 
-#+BEGIN_SRC R :exports none :eval no
-  ## No idea what this was for.
+When performing an update to an existing pSIMS collection the =year=
+variable should only contain values covered by =nldasHours=.  When
+writing a new pSIMS collection the commented value should be used.
 
-  dailies <- list.files(
-    "data/NLDAS_FORA0125_H.002/1982",
-    "NLDAS_FORA0125_H.A1982[0-9]{4}\\.tmin\\.nc",
-    full.names= TRUE,
-    recursive= TRUE)
-#+END_SRC
 
 ** Merge individual variables into all-time files
 
@@ -1404,6 +1420,7 @@ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/v_nldas_1979-
 This should perhaps be done on compute nodes but it really does not
 cost much computatationally.
 
+
 * Set up a small test
 
 First two days of data.
@@ -1422,6 +1439,7 @@ First two days of data.
 #+END_SRC
 
 So far we have only specified the first two days of data.
+
 
 ** Visualize the test Makeflow
 
@@ -1448,6 +1466,7 @@ Edit the DOT file by hand to make labels shorter.
 #+RESULTS: renderMakeflowTestDotSvg
 [[file:Makeflow.test.svg]]
 
+
 ** Run test Makeflow
 
 #+BEGIN_SRC sh :session *shell*
@@ -1460,16 +1479,159 @@ Edit the DOT file by hand to make labels shorter.
 
 * Run the full Makeflow
 
-#+BEGIN_SRC sh :session *shell* :eval no
-  ## PATH=~/local/cctools/bin:$PATH
+#+CALL: newMakeflowFile( "Makeflow")
+
+#+NAME: refreshMakeflow
+#+BEGIN_SRC R :noweb yes :tangle tangle/Makeflow.R
+  <<writeMergetimeRules>>
+  <<writeAggregationRules>>
+  <<writeAnnualRules>>
+  <<writeAllTimeRules>>
+  <<writeRemapRules>>
+#+END_SRC
+
+#+BEGIN_SRC sh :session *shell* :eval yes
+  PATH=~/local/cctools/bin:$PATH
   makeflow -c
-  slurm_submit_workers --cores 0 -p "--time=60" midway-login2 9123 4
+  slurm_submit_workers --cores 0 -p "--time=120" midway-login2 9123 8
   makeflow -Tworkqueue-sharedfs 
 #+END_SRC
 
 
+* Copy the remapped, all-time data to scratch
+
+* Write the pSIMS files
+
+** TODO Bring the =writePsims.{sh,sbatch,r} code into this document for completeness
+
+#+BEGIN_SRC sh :session :results output replace :exports code
+  scripts/writePsims.sh
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+| Submitting ::   job name | output file | error file | sbatch file | job id |
+| Submitting :: writePsims | ./log/writePsims.1.out | ./log/writePsims.1.err | scripts/writePsims.sbatch |Submitted batch job 6983263
+| Submitting :: writePsims | ./log/writePsims.2.out | ./log/writePsims.2.err | scripts/writePsims.sbatch |Submitted batch job 6983264
+| Submitting :: writePsims | ./log/writePsims.3.out | ./log/writePsims.3.err | scripts/writePsims.sbatch |Submitted batch job 6983265
+| Submitting :: writePsims | ./log/writePsims.4.out | ./log/writePsims.4.err | scripts/writePsims.sbatch |Submitted batch job 6983266
+| Submitting :: writePsims | ./log/writePsims.5.out | ./log/writePsims.5.err | scripts/writePsims.sbatch |Submitted batch job 6983267
+| Submitting :: writePsims | ./log/writePsims.6.out | ./log/writePsims.6.err | scripts/writePsims.sbatch |Submitted batch job 6983268
+| Submitting :: writePsims | ./log/writePsims.7.out | ./log/writePsims.7.err | scripts/writePsims.sbatch |Submitted batch job 6983269
+| Submitting :: writePsims | ./log/writePsims.8.out | ./log/writePsims.8.err | scripts/writePsims.sbatch |Submitted batch job 6983270
+| Submitting :: writePsims | ./log/writePsims.9.out | ./log/writePsims.9.err | scripts/writePsims.sbatch |Submitted batch job 6983271
+| Submitting :: writePsims | ./log/writePsims.10.out | ./log/writePsims.10.err | scripts/writePsims.sbatch |Submitted batch job 6983272
+| Submitting :: writePsims | ./log/writePsims.11.out | ./log/writePsims.11.err | scripts/writePsims.sbatch |Submitted batch job 6983273
+| Submitting :: writePsims | ./log/writePsims.12.out | ./log/writePsims.12.err | scripts/writePsims.sbatch |Submitted batch job 6983274
+| Submitting :: writePsims | ./log/writePsims.13.out | ./log/writePsims.13.err | scripts/writePsims.sbatch |Submitted batch job 6983275
+| Submitting :: writePsims | ./log/writePsims.14.out | ./log/writePsims.14.err | scripts/writePsims.sbatch |Submitted batch job 6983276
+| Submitting :: writePsims | ./log/writePsims.15.out | ./log/writePsims.15.err | scripts/writePsims.sbatch |Submitted batch job 6983277
+| Submitting :: writePsims | ./log/writePsims.16.out | ./log/writePsims.16.err | scripts/writePsims.sbatch |Submitted batch job 6983278
+| Submitting :: writePsims | ./log/writePsims.17.out | ./log/writePsims.17.err | scripts/writePsims.sbatch |Submitted batch job 6983279
+| Submitting :: writePsims | ./log/writePsims.18.out | ./log/writePsims.18.err | scripts/writePsims.sbatch |Submitted batch job 6983280
+| Submitting :: writePsims | ./log/writePsims.19.out | ./log/writePsims.19.err | scripts/writePsims.sbatch |Submitted batch job 6983281
+| Submitting :: writePsims | ./log/writePsims.20.out | ./log/writePsims.20.err | scripts/writePsims.sbatch |Submitted batch job 6983282
+| Submitting :: writePsims | ./log/writePsims.21.out | ./log/writePsims.21.err | scripts/writePsims.sbatch |Submitted batch job 6983283
+| Submitting :: writePsims | ./log/writePsims.22.out | ./log/writePsims.22.err | scripts/writePsims.sbatch |Submitted batch job 6983284
+| Submitting :: writePsims | ./log/writePsims.23.out | ./log/writePsims.23.err | scripts/writePsims.sbatch |Submitted batch job 6983285
+| Submitting :: writePsims | ./log/writePsims.24.out | ./log/writePsims.24.err | scripts/writePsims.sbatch |Submitted batch job 6983286
+| Submitting :: writePsims | ./log/writePsims.25.out | ./log/writePsims.25.err | scripts/writePsims.sbatch |Submitted batch job 6983287
+| Submitting :: writePsims | ./log/writePsims.26.out | ./log/writePsims.26.err | scripts/writePsims.sbatch |Submitted batch job 6983288
+| Submitting :: writePsims | ./log/writePsims.27.out | ./log/writePsims.27.err | scripts/writePsims.sbatch |Submitted batch job 6983289
+| Submitting :: writePsims | ./log/writePsims.28.out | ./log/writePsims.28.err | scripts/writePsims.sbatch |Submitted batch job 6983290
+| Submitting :: writePsims | ./log/writePsims.29.out | ./log/writePsims.29.err | scripts/writePsims.sbatch |Submitted batch job 6983291
+| Submitting :: writePsims | ./log/writePsims.30.out | ./log/writePsims.30.err | scripts/writePsims.sbatch |Submitted batch job 6983292
+| Submitting :: writePsims | ./log/writePsims.31.out | ./log/writePsims.31.err | scripts/writePsims.sbatch |Submitted batch job 6983293
+| Submitting :: writePsims | ./log/writePsims.32.out | ./log/writePsims.32.err | scripts/writePsims.sbatch |Submitted batch job 6983294
+| Submitting :: writePsims | ./log/writePsims.33.out | ./log/writePsims.33.err | scripts/writePsims.sbatch |Submitted batch job 6983295
+| Submitting :: writePsims | ./log/writePsims.34.out | ./log/writePsims.34.err | scripts/writePsims.sbatch |Submitted batch job 6983296
+| Submitting :: writePsims | ./log/writePsims.35.out | ./log/writePsims.35.err | scripts/writePsims.sbatch |Submitted batch job 6983297
+| Submitting :: writePsims | ./log/writePsims.36.out | ./log/writePsims.36.err | scripts/writePsims.sbatch |Submitted batch job 6983298
+| Submitting :: writePsims | ./log/writePsims.37.out | ./log/writePsims.37.err | scripts/writePsims.sbatch |Submitted batch job 6983299
+| Submitting :: writePsims | ./log/writePsims.38.out | ./log/writePsims.38.err | scripts/writePsims.sbatch |Submitted batch job 6983300
+| Submitting :: writePsims | ./log/writePsims.39.out | ./log/writePsims.39.err | scripts/writePsims.sbatch |Submitted batch job 6983301
+| Submitting :: writePsims | ./log/writePsims.40.out | ./log/writePsims.40.err | scripts/writePsims.sbatch |Submitted batch job 6983302
+| Submitting :: writePsims | ./log/writePsims.41.out | ./log/writePsims.41.err | scripts/writePsims.sbatch |Submitted batch job 6983303
+| Submitting :: writePsims | ./log/writePsims.42.out | ./log/writePsims.42.err | scripts/writePsims.sbatch |Submitted batch job 6983304
+| Submitting :: writePsims | ./log/writePsims.43.out | ./log/writePsims.43.err | scripts/writePsims.sbatch |Submitted batch job 6983305
+| Submitting :: writePsims | ./log/writePsims.44.out | ./log/writePsims.44.err | scripts/writePsims.sbatch |Submitted batch job 6983306
+| Submitting :: writePsims | ./log/writePsims.45.out | ./log/writePsims.45.err | scripts/writePsims.sbatch |Submitted batch job 6983307
+| Submitting :: writePsims | ./log/writePsims.46.out | ./log/writePsims.46.err | scripts/writePsims.sbatch |Submitted batch job 6983308
+| Submitting :: writePsims | ./log/writePsims.47.out | ./log/writePsims.47.err | scripts/writePsims.sbatch |Submitted batch job 6983309
+| Submitting :: writePsims | ./log/writePsims.48.out | ./log/writePsims.48.err | scripts/writePsims.sbatch |Submitted batch job 6983310
+| Submitting :: writePsims | ./log/writePsims.49.out | ./log/writePsims.49.err | scripts/writePsims.sbatch |Submitted batch job 6983311
+| Submitting :: writePsims | ./log/writePsims.50.out | ./log/writePsims.50.err | scripts/writePsims.sbatch |Submitted batch job 6983312
+| Submitting :: writePsims | ./log/writePsims.51.out | ./log/writePsims.51.err | scripts/writePsims.sbatch |Submitted batch job 6983313
+| Submitting :: writePsims | ./log/writePsims.52.out | ./log/writePsims.52.err | scripts/writePsims.sbatch |Submitted batch job 6983314
+| Submitting :: writePsims | ./log/writePsims.53.out | ./log/writePsims.53.err | scripts/writePsims.sbatch |Submitted batch job 6983315
+| Submitting :: writePsims | ./log/writePsims.54.out | ./log/writePsims.54.err | scripts/writePsims.sbatch |Submitted batch job 6983316
+| Submitting :: writePsims | ./log/writePsims.55.out | ./log/writePsims.55.err | scripts/writePsims.sbatch |Submitted batch job 6983317
+| Submitting :: writePsims | ./log/writePsims.56.out | ./log/writePsims.56.err | scripts/writePsims.sbatch |Submitted batch job 6983318
+| Submitting :: writePsims | ./log/writePsims.57.out | ./log/writePsims.57.err | scripts/writePsims.sbatch |Submitted batch job 6983319
+| Submitting :: writePsims | ./log/writePsims.58.out | ./log/writePsims.58.err | scripts/writePsims.sbatch |Submitted batch job 6983320
+| Submitting :: writePsims | ./log/writePsims.59.out | ./log/writePsims.59.err | scripts/writePsims.sbatch |Submitted batch job 6983321
+| Submitting :: writePsims | ./log/writePsims.60.out | ./log/writePsims.60.err | scripts/writePsims.sbatch |Submitted batch job 6983322
+| Submitting :: writePsims | ./log/writePsims.61.out | ./log/writePsims.61.err | scripts/writePsims.sbatch |Submitted batch job 6983323
+| Submitting :: writePsims | ./log/writePsims.62.out | ./log/writePsims.62.err | scripts/writePsims.sbatch |Submitted batch job 6983324
+| Submitting :: writePsims | ./log/writePsims.63.out | ./log/writePsims.63.err | scripts/writePsims.sbatch |Submitted batch job 6983325
+| Submitting :: writePsims | ./log/writePsims.64.out | ./log/writePsims.64.err | scripts/writePsims.sbatch |Submitted batch job 6983326
+| Submitting :: writePsims | ./log/writePsims.65.out | ./log/writePsims.65.err | scripts/writePsims.sbatch |Submitted batch job 6983327
+| Submitting :: writePsims | ./log/writePsims.66.out | ./log/writePsims.66.err | scripts/writePsims.sbatch |Submitted batch job 6983328
+| Submitting :: writePsims | ./log/writePsims.67.out | ./log/writePsims.67.err | scripts/writePsims.sbatch |Submitted batch job 6983329
+| Submitting :: writePsims | ./log/writePsims.68.out | ./log/writePsims.68.err | scripts/writePsims.sbatch |Submitted batch job 6983330
+| Submitting :: writePsims | ./log/writePsims.69.out | ./log/writePsims.69.err | scripts/writePsims.sbatch |Submitted batch job 6983331
+| Submitting :: writePsims | ./log/writePsims.70.out | ./log/writePsims.70.err | scripts/writePsims.sbatch |Submitted batch job 6983332
+| Submitting :: writePsims | ./log/writePsims.71.out | ./log/writePsims.71.err | scripts/writePsims.sbatch |Submitted batch job 6983333
+| Submitting :: writePsims | ./log/writePsims.72.out | ./log/writePsims.72.err | scripts/writePsims.sbatch |Submitted batch job 6983334
+| Submitting :: writePsims | ./log/writePsims.73.out | ./log/writePsims.73.err | scripts/writePsims.sbatch |Submitted batch job 6983335
+| Submitting :: writePsims | ./log/writePsims.74.out | ./log/writePsims.74.err | scripts/writePsims.sbatch |Submitted batch job 6983336
+| Submitting :: writePsims | ./log/writePsims.75.out | ./log/writePsims.75.err | scripts/writePsims.sbatch |Submitted batch job 6983337
+| Submitting :: writePsims | ./log/writePsims.76.out | ./log/writePsims.76.err | scripts/writePsims.sbatch |Submitted batch job 6983338
+| Submitting :: writePsims | ./log/writePsims.77.out | ./log/writePsims.77.err | scripts/writePsims.sbatch |Submitted batch job 6983339
+| Submitting :: writePsims | ./log/writePsims.78.out | ./log/writePsims.78.err | scripts/writePsims.sbatch |Submitted batch job 6983340
+| Submitting :: writePsims | ./log/writePsims.79.out | ./log/writePsims.79.err | scripts/writePsims.sbatch |Submitted batch job 6983341
+| Submitting :: writePsims | ./log/writePsims.80.out | ./log/writePsims.80.err | scripts/writePsims.sbatch |Submitted batch job 6983342
+| Submitting :: writePsims | ./log/writePsims.81.out | ./log/writePsims.81.err | scripts/writePsims.sbatch |Submitted batch job 6983343
+| Submitting :: writePsims | ./log/writePsims.82.out | ./log/writePsims.82.err | scripts/writePsims.sbatch |Submitted batch job 6983344
+| Submitting :: writePsims | ./log/writePsims.83.out | ./log/writePsims.83.err | scripts/writePsims.sbatch |Submitted batch job 6983345
+| Submitting :: writePsims | ./log/writePsims.84.out | ./log/writePsims.84.err | scripts/writePsims.sbatch |Submitted batch job 6983346
+| Submitting :: writePsims | ./log/writePsims.85.out | ./log/writePsims.85.err | scripts/writePsims.sbatch |Submitted batch job 6983347
+| Submitting :: writePsims | ./log/writePsims.86.out | ./log/writePsims.86.err | scripts/writePsims.sbatch |Submitted batch job 6983348
+| Submitting :: writePsims | ./log/writePsims.87.out | ./log/writePsims.87.err | scripts/writePsims.sbatch |Submitted batch job 6983349
+| Submitting :: writePsims | ./log/writePsims.88.out | ./log/writePsims.88.err | scripts/writePsims.sbatch |Submitted batch job 6983350
+| Submitting :: writePsims | ./log/writePsims.89.out | ./log/writePsims.89.err | scripts/writePsims.sbatch |Submitted batch job 6983351
+| Submitting :: writePsims | ./log/writePsims.90.out | ./log/writePsims.90.err | scripts/writePsims.sbatch |Submitted batch job 6983352
+| Submitting :: writePsims | ./log/writePsims.91.out | ./log/writePsims.91.err | scripts/writePsims.sbatch |Submitted batch job 6983353
+| Submitting :: writePsims | ./log/writePsims.92.out | ./log/writePsims.92.err | scripts/writePsims.sbatch |Submitted batch job 6983354
+| Submitting :: writePsims | ./log/writePsims.93.out | ./log/writePsims.93.err | scripts/writePsims.sbatch |Submitted batch job 6983355
+| Submitting :: writePsims | ./log/writePsims.94.out | ./log/writePsims.94.err | scripts/writePsims.sbatch |Submitted batch job 6983356
+| Submitting :: writePsims | ./log/writePsims.95.out | ./log/writePsims.95.err | scripts/writePsims.sbatch |Submitted batch job 6983357
+| Submitting :: writePsims | ./log/writePsims.96.out | ./log/writePsims.96.err | scripts/writePsims.sbatch |Submitted batch job 6983358
+| Submitting :: writePsims | ./log/writePsims.97.out | ./log/writePsims.97.err | scripts/writePsims.sbatch |Submitted batch job 6983359
+| Submitting :: writePsims | ./log/writePsims.98.out | ./log/writePsims.98.err | scripts/writePsims.sbatch |Submitted batch job 6983360
+| Submitting :: writePsims | ./log/writePsims.99.out | ./log/writePsims.99.err | scripts/writePsims.sbatch |Submitted batch job 6983361
+| Submitting :: writePsims | ./log/writePsims.100.out | ./log/writePsims.100.err | scripts/writePsims.sbatch |Submitted batch job 6983362
+| Submitting :: writePsims | ./log/writePsims.101.out | ./log/writePsims.101.err | scripts/writePsims.sbatch |Submitted batch job 6983363
+| Submitting :: writePsims | ./log/writePsims.102.out | ./log/writePsims.102.err | scripts/writePsims.sbatch |Submitted batch job 6983364
+| Submitting :: writePsims | ./log/writePsims.103.out | ./log/writePsims.103.err | scripts/writePsims.sbatch |Submitted batch job 6983365
+| Submitting :: writePsims | ./log/writePsims.104.out | ./log/writePsims.104.err | scripts/writePsims.sbatch |Submitted batch job 6983366
+| Submitting :: writePsims | ./log/writePsims.105.out | ./log/writePsims.105.err | scripts/writePsims.sbatch |Submitted batch job 6983367
+| Submitting :: writePsims | ./log/writePsims.106.out | ./log/writePsims.106.err | scripts/writePsims.sbatch |Submitted batch job 6983368
+| Submitting :: writePsims | ./log/writePsims.107.out | ./log/writePsims.107.err | scripts/writePsims.sbatch |Submitted batch job 6983369
+| Submitting :: writePsims | ./log/writePsims.108.out | ./log/writePsims.108.err | scripts/writePsims.sbatch |Submitted batch job 6983370
+| Submitting :: writePsims | ./log/writePsims.109.out | ./log/writePsims.109.err | scripts/writePsims.sbatch |Submitted batch job 6983371
+| Submitting :: writePsims | ./log/writePsims.110.out | ./log/writePsims.110.err | scripts/writePsims.sbatch |Submitted batch job 6983372
+| Submitting :: writePsims | ./log/writePsims.111.out | ./log/writePsims.111.err | scripts/writePsims.sbatch |Submitted batch job 6983373
+| Submitting :: writePsims | ./log/writePsims.112.out | ./log/writePsims.112.err | scripts/writePsims.sbatch |Submitted batch job 6983374
+| Submitting :: writePsims | ./log/writePsims.113.out | ./log/writePsims.113.err | scripts/writePsims.sbatch |Submitted batch job 6983375
+| Submitting :: writePsims | ./log/writePsims.114.out | ./log/writePsims.114.err | scripts/writePsims.sbatch |Submitted batch job 6983376
+| Submitting :: writePsims | ./log/writePsims.115.out | ./log/writePsims.115.err | scripts/writePsims.sbatch |Submitted batch job 6983377
+| Submitting :: writePsims | ./log/writePsims.116.out | ./log/writePsims.116.err | scripts/writePsims.sbatch |Submitted batch job 6983378
+#+end_example
+
+
 * Clean up intermediate data
 
-#+BEGIN_SRC sh
+#+BEGIN_SRC sh :eval no
   find data/NLDAS_FORA0125_H.002 -name "*.nc" -delete
 #+END_SRC
