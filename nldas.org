@@ -2,9 +2,13 @@
 #+PROPERTY: results silent
 #+PROPERTY: exports both
 
-* Initialize the R session
+* Download the hourly data: =scripts/nldasDownload.{R,sbatch}=
 
-#+BEGIN_SRC R
+** Initialize the R session
+
+#+HEADER: :tangle tangle/nldasDownload.R
+#+HEADER: :shebang #!/usr/bin/R --vanilla
+#+BEGIN_SRC R 
   library( XML)
   library( stringr)
 
@@ -13,8 +17,12 @@
 
 The base of the NLDAS downloads is =src_R[ :exports results]{ baseUrl}=.
 
+*** TODO Make the shebang dynamic, perhaps with =call-process= in elisp.
 
-* Download hourly data
+For now shebang will have to be edited for different systems.
+=/usr/bin/R= will be fine in many cases, but not on Midway.
+
+** Compute the dates of the missing data
 
 The NLDAS archive begins at [1979-01-01 13:00].  Our experience is
 that the most recent data available is four days before the present.
@@ -26,6 +34,7 @@ to specify the complete collection:
 #+HEADER: :var fromMonth=    1 
 #+HEADER: :var fromDay=      1 
 #+HEADER: :var fromHour=    13
+#+HEADER: :tangle tangle/nldasDownload.R
 #+BEGIN_SRC R :results output silent
   nldasDates <-
     seq(
@@ -37,6 +46,8 @@ to specify the complete collection:
       to= as.POSIXlt( Sys.Date() - 4),
       by= "hour")
 #+END_SRC
+
+
 
 Using the default arguments will populate the data as follows:
 
@@ -74,6 +85,10 @@ date sequence as follows:
 
 #+CALL: nldasDates( fromYear= 2013, fromMonth= 9, fromDay= 21, fromHour= 1)
 
+Simply adjust the arguments in the above =#+CALL:= and press =C-c C-c=
+if using Emacs Org-mode.  Otherwise edit the script in
+=scripts/nldasDownload.R=.
+
 #+RESULTS:
 
 src_R[:results replace value]{head(nldasDates)}
@@ -85,6 +100,7 @@ src_R[:results replace value]{head(nldasDates)}
 | 2013-09-21 06:00:00 |
 
 #+NAME: nldasDataUrls
+#+HEADER: :tangle tangle/nldasDownload.R
 #+BEGIN_SRC R :file data/nldasDataUrls :results replace
 nldasDataUrls <-
   paste(
@@ -98,6 +114,15 @@ nldasDataUrls <-
 #+RESULTS: nldasDataUrls
 [[file:data/nldasDataUrls]]
 
+When evaluated within the =nldas.org= environment the previous block
+takes care of emitting its results to a file, but to run from the
+tangled code we need another small block.  The =Makefile= directs the
+ouput to the appropriate file.
+
+#+HEADER: :tangle tangle/nldasDownload.R
+#+BEGIN_SRC R :eval no
+  cat( nldasDataUrls, sep= "\n")
+#+END_SRC
 
 * Work out checksum verification using first URL
 
@@ -185,8 +210,10 @@ testing.
 
 * TODO Download using GNU Parallel and SLURM
 
-
-#+BEGIN_SRC sh :eval no :noweb yes :shebang #!/bin/sh :tangle tangle/parallelWget.sh
+#+HEADER: :tangle tangle/parallelWget.sh
+#+HEADER: :shebang #!/bin/sh 
+#+HEADER: :noweb yes 
+#+BEGIN_SRC sh :eval no 
   module load parallel
   parallel \
       --jobs $SLURM_NTASKS \
@@ -304,6 +331,7 @@ These correspond to the values we must give to CDO in a 'parameter table'.
   mkdir data/output
 #+END_SRC
 
+#+HEADER: :tangle tangle/writeNldasMask.sh
 #+BEGIN_SRC sh :session :results output replace
   gdalwarp -overwrite \
       -t_srs EPSG:4326 \
@@ -375,7 +403,7 @@ Band 11 Block=4320x1 Type=Float64, ColorInterp=Undefined
   NoData Value=9999
 #+end_example
 
-
+#+HEADER: :tangle tangle/writeNldasMask.sh
 #+BEGIN_SRC sh :session *nldas* :results output
   gdal_translate -ot Byte -b 1 \
       -a_nodata 255 \
@@ -428,6 +456,7 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 
 ** Scaling with gdal_translate doesn't work
 
+#+HEADER: :eval no
 #+BEGIN_SRC sh :session :results output
   gdal_translate \
       -scale 0 254 1 1 \
@@ -442,7 +471,11 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 
 ** Use R!
 
+#+HEADER: :shebang #!/usr/bin/R --vanilla
+#+HEADER: :tangle tangle/writeNldasMask.R
 #+BEGIN_SRC R
+  library( raster)
+
   nldasMask5minByte <- setMinMax(
     raster( "data/output/nldasMask5minByte.tif"))
   
@@ -505,6 +538,7 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 
 * Write out grid cells
 
+#+HEADER: :tangle tangle/writeNldasMask.R
 #+BEGIN_SRC R :results silent
   nldasCells5min <- which( as.logical( nldasMask5min[]))
   
@@ -536,17 +570,24 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 
 * Get the bounding box and write CDO grid description
 
+#+HEADER: :tangle tangle/writeNldasRegion.R
+#+HEADER: :shebang #!/usr/bin/Rscript 
 #+BEGIN_SRC R
+  library( raster)
+  nldasMask5min <- raster( "data/output/nldasMask5min.tif")
   nldasRegion <- trim( nldasMask5min, filename= "data/output/nldasRegion.tif")
 #+END_SRC
 
+#+HEADER: :tangle tangle/writeNldasRegion.sh
+#+HEADER: :noweb yes
 #+BEGIN_SRC sh :session *nldas* :results output
   gdalwarp -overwrite \
       -t_srs EPSG:4326 \
       -tr 0.08333333 0.08333333 \
       -srcnodata 9999 \
       -dstnodata 9999 \
-      data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+      # data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+      $( find data/NLDAS_FORA0125_H.002 -type f -name "*.grb" | head -n 1) \
       data/output/nldasRegionRaw.tif
 #+END_SRC
 
@@ -612,6 +653,7 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 #+end_example
 
 
+#+HEADER: :tangle tangle/writeNldasRegion.sh
 #+BEGIN_SRC sh :session *nldas* :results output
   gdal_translate -ot Byte -b 1 \
       -a_nodata 255 \
@@ -626,6 +668,7 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 : 0...10...20...30...40...50...60...70...80...90...100 - done.
 
 
+#+HEADER: :tangle tangle/writeNldasRegion.R
 #+BEGIN_SRC R :results silent
   
   griddesFormat <- 
@@ -647,7 +690,7 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
       ymin( nldasRegion),
       res( nldasRegion)[2])
   
-  cat( griddes, file= "scripts/nldas_5min.grid")
+  cat( griddes, file= "data/output/nldas_5min.grid")
 #+END_SRC
 
 #+BEGIN_SRC R :results output
@@ -713,7 +756,8 @@ Use the above like so to avoid processing data that is already aggregated.
 ** TODO report Org/R/noweb bug in pseudo-heredoc
 
 #+BEGIN_SRC R :noweb yes :eval no
-  template <- "<<hourlyTemplate>>"
+  template <- "
+  <<hourlyTemplate>>"
 #+END_SRC
 
 
@@ -726,8 +770,6 @@ Use the above like so to avoid processing data that is already aggregated.
 #+END_SRC
 
 #+BEGIN_SRC R :tangle/writeMakeflow.R :eval yes
-  ## template <- "{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc:"
-
   template <- snarf( "tangle/hourlyTemplate.mustache")
 #+END_SRC
 
