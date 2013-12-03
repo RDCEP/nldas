@@ -2,6 +2,49 @@
 #+PROPERTY: results silent
 #+PROPERTY: exports both
 
+* Introduction
+
+This Emacs Org-mode document describes and demonstrates the workflow
+for transforming NLDAS hourly weather data into pSIMS time series used
+to drive biophysical crop models in the pSIMS framework.  If you are
+reading the file =nldas.org= you will see many instances of Org
+mark-up syntax used to set apart prose, code, and execution output.
+In the derivative =nldas.txt= version the presentation will be much
+cleaner but the content becomes static with a table of contents and
+various ASCII art added for readability.  Certain code blocks and/or
+their results are excluded from the export when deemed superfluous or
+excessively verbose.
+
+Many of the scripts in the =scripts/= directory are also derived from
+the =nldas.org= file.  Through the process of "tangling" the source
+code blocks are "tangled", or exported, to the =tangle/= directory.
+There is logic indicated by the "tangle" target in the the =Makefile=.
+The Git hook in =git-hooks/pre-commit= will perform this action
+automatically once activated in your clone as described [[http://codeinthehole.com/writing/tips-for-using-a-git-pre-commit-hook/][here]].  The
+purpose of this automation is to keep the tangled code in =scripts/=
+in sync with the dynamic content of =nldas.org= because both the
+parent document and the derived children are tracked in the Git
+repository.  This behavior can be overridden with =git --no-verify=
+but this usage is discouraged.  The purpose of the =tangle/= directory
+and the =rsync= to the =scripts/= directory is to ensure that only
+files that change in =tangle/= are rewritten in =scripts/= and
+subsequently commited to the Git repository.
+
+The =Makefile= included with this project is not incorporated into
+this document due to the recursive dependencies such a relationship
+would create.  It is intended to serve as a roadmap of the workflow
+for the reader who is tracing the logic of the process.  It is
+possible to execute significant portions of the workflow using =make=
+but this capability has not been tested and should be used with care,
+preferably in a sandbox clone rather than in the master project
+directory on Midway.  For example, the shebang ("#!") strings of the R
+scripts have not been exercised and may preclude automation under
+=make= for the time being but the primary purpose is to illuminate the
+dependencies among the various scripts and outputs.  However, the
+=Makefile= is useful for updating the derived scripts after making
+edits in source code blocks within =nldas.org=.
+
+
 * Download the hourly data: =scripts/nldasDownload.{R,sbatch}=
 
 ** Initialize the R session
@@ -28,6 +71,11 @@ The NLDAS archive begins at [1979-01-01 13:00].  Our experience is
 that the most recent data available is four days before the present.
 When starting with no data one should use the following date sequence
 to specify the complete collection:
+
+In order to start a new NLDAS collection or perform an update outside
+of Emacs Org-mode you must edit the =#+HEADER: :var= parameters of the
+following code block or the corresponding assignment statements in the
+tangled & =rsync='d script in =scripts/nldasDownload.R=.
 
 #+NAME: nldasDates
 #+HEADER: :var fromYear=  1979
@@ -570,6 +618,15 @@ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
 
 * Get the bounding box and write CDO grid description
 
+CDO needs a "grid description" file to perform the resampling of the
+native-resolution data to our $5'$ grid.  Along the way a raster mask
+indicating where data is available from the NLDAS dataset is produced.
+This is used later in =scripts/writePsims.r= (see function
+=writePsimsNc()=) to determine which directories corresponding to grid
+cells in the row/column pSIMS data file tree are to be created and
+populated.
+
+
 #+HEADER: :tangle tangle/writeNldasRegion.R
 #+HEADER: :shebang #!/usr/bin/Rscript 
 #+BEGIN_SRC R
@@ -667,6 +724,9 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 : > > > Input file size is 696, 336
 : 0...10...20...30...40...50...60...70...80...90...100 - done.
 
+This byte file serves as a boolean mask from which a grid cell ID or
+row/col list can be generated.  It seems that it is not explicitly
+used elsewhere for now.
 
 #+HEADER: :tangle tangle/writeNldasRegion.R
 #+BEGIN_SRC R :results silent
@@ -709,6 +769,11 @@ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
 
 
 * Write makeflow file using Whisker templates
+
+In order to start a new NLDAS collection or perform an update outside
+of Emacs Org-mode you must edit the =#+HEADER: :var= parameters of the
+following code block or the corresponding assignment statements in the
+tangled & =rsync='d script in =scripts/writeMakeflow.R=.
 
 #+NAME: nldasHours
 #+HEADER: :var fromYear=  1979
@@ -858,7 +923,7 @@ cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS
 
 ** Create daily merge files
 
-#+BEGIN_SRC R
+#+BEGIN_SRC R :tangle/writeMakeflow.R
   dailyMergeFileTemplate <-
     "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.merge.nc"
   
@@ -1001,7 +1066,7 @@ cdo -f nc  /project/joshuaelliott/nldas/data/NLDAS_FORA0125_H.002/1979/001/NLDAS
 #+CALL: newMakeflowFile( "Makeflow")
 
 #+NAME: writeMergetimeRules
-#+BEGIN_SRC R :tangle tangle/writeMakeflow.R :tangle no
+#+BEGIN_SRC R :tangle no
   d_ply( 
     .data= data.frame( POSIXct= nldasHours),
     .variables= .( as.Date( POSIXct)),
@@ -1029,7 +1094,8 @@ This one is not used.
 
 ** Aggregate hourly values into daily variables
 
-#+BEGIN_SRC mustache :eval no :tangle tangle/dailyAggRuleTemplate.mustache :tangle no :export no
+#+HEADER: :tangle tangle/dailyAggRuleTemplate.mustache :tangle no :export no
+#+BEGIN_SRC mustache :eval no 
 {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{> dailyMergeFile}}
 cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc
 {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{> dailyMergeFile}}
@@ -1048,6 +1114,7 @@ cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{> dailyMergeFile}} {{dat
 cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc
 #+END_SRC
 
+#+HEADER: :tangle tangle/writeMakeflow.R
 #+BEGIN_SRC R
   dailyAggRuleTemplate <- paste(
     "",
@@ -1153,6 +1220,7 @@ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FOR
 
 ** Merge individual variables into annual files
 
+#+HEADER: :tangle tangle/writeMakeflow.R
 #+BEGIN_SRC R
   psimsVars <- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
   
@@ -1194,7 +1262,7 @@ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FOR
   }
 #+END_SRC
 
-#+BEGIN_SRC R :results replace output
+#+BEGIN_SRC R :results replace output :exports none
   cat( renderAnnualRecipe( data.frame( var= "tmax", year= 1979)), "\n")    
 #+END_SRC
 
@@ -1205,7 +1273,7 @@ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FOR
 
 
 #+NAME: writeAnnualRulesTest
-#+BEGIN_SRC R :export no :noweb yes
+#+BEGIN_SRC R :exports none :noweb yes
   cat(
     unlist(
       dlply(
@@ -1220,7 +1288,7 @@ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FOR
 #+END_SRC
 
 #+NAME: writeAnnualRules
-#+BEGIN_SRC R :export no :noweb yes
+#+BEGIN_SRC R :exports none :noweb yes
   cat(
     unlist(
       dlply(
@@ -1238,10 +1306,12 @@ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FOR
 When performing an update to an existing pSIMS collection the =year=
 variable should only contain values covered by =nldasHours=.  When
 writing a new pSIMS collection the commented value should be used.
+This could be done more intelligently by automating this logic.
 
 
 ** Merge individual variables into all-time files
 
+#+HEADER: :tangle tangle/writeMakeflow.R
 #+BEGIN_SRC R
   psimsVars <- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
   
@@ -1371,6 +1441,7 @@ writing a new pSIMS collection the commented value should be used.
 
 *** This works
 
+#+HEADER: :tangle tangle/writeMakeflow.R
 #+BEGIN_SRC R
   remapRecipeData <- unname(
     rowSplit(
@@ -1522,13 +1593,26 @@ Edit the DOT file by hand to make labels shorter.
   makeflow -Tworkqueue-sharedfs Makeflow.test
 #+END_SRC
 
+   
+* Write out and run the full Makeflow
 
-* Run the full Makeflow
+Rewriting the Makeflow file begins with removing the existing copy.
+Subsequent operations all use append operations.  This is why there is
+an =rm= command in the =Makefile=.
 
 #+CALL: newMakeflowFile( "Makeflow")
 
+Code blocks that are described above are gathered together in
+=scripts/writeMakeflow.R= and so are not re-exported here, but
+logically this is where the execution of =scripts/writeMakeflow.R=
+occurs and the =Makeflow= file is created.
+
+
 #+NAME: refreshMakeflow
-#+BEGIN_SRC R :noweb yes :tangle tangle/writeMakeflow.R
+#+HEADER: :noweb yes 
+#+HEADER: :tangle tangle/writeMakeflow.R
+#+HEADER: :exports none
+#+BEGIN_SRC R 
   <<writeMergetimeRules>>
   <<writeAggregationRules>>
   <<writeAnnualRules>>
@@ -1536,7 +1620,17 @@ Edit the DOT file by hand to make labels shorter.
   <<writeRemapRules>>
 #+END_SRC
 
-#+BEGIN_SRC sh :session *shell* :eval yes
+The next block should not be exectuted until you have a build of
+CCTools installed in your environment and you study its
+=slurm_submit_workers= script, or the appropriate resource manager for
+your environment (SGE, Condor, etc.),  to understand thoroughly what
+is going on here.  For now creating the =Makeflow= file is the default
+action of the =Makefile= and subsequent steps should be executed
+manually. 
+
+
+#+HEADER: :tangle tangle/runMakeflow.sh
+#+BEGIN_SRC sh :session *shell* :eval no
   PATH=~/local/cctools/bin:$PATH
   makeflow -c
   slurm_submit_workers --cores 0 -p "--time=120" midway-login2 9123 8
@@ -1545,6 +1639,12 @@ Edit the DOT file by hand to make labels shorter.
 
 
 * Copy the remapped, all-time data to scratch
+
+This was necessary to alleviate some I/O resource issues on Midway.
+The scripts in the following section look for a copy of their input
+data on scratch, so if there is old data there and you forget this
+step your results will not be what you expect.
+
 
 * Write the pSIMS files
 

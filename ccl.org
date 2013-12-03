@@ -1,0 +1,114 @@
+#+TITLE: Weather Data Processing with Makeflow and SLURM
+#+DATE: <2013-10-11 Wed>
+#+AUTHOR: Neil Best
+#+EMAIL: nbest@ci.uchicago.edu
+#+OPTIONS:   H:2 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+CREATOR: Emacs 24.3.1 (Org mode 8.2)
+#+DESCRIPTION:
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+#+startup: beamer
+#+LaTeX_CLASS: beamer
+#+LaTeX_CLASS_OPTIONS: [smaller]
+#+LaTeX_HEADER: \usepackage{listings}
+#+BEAMER_FRAME_LEVEL: 2
+#+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
+#+EPRESENT_FRAME_LEVEL: 2
+
+* Introduction
+
+- University of Chicago
+- Computation Institute (CI)
+- Center for Robust Decision Making on Climate and Energy Policy (RDCEP)
+- Parallel system for integrating imapct models and sectors (pSIMS)
+
+
+* The Problem
+
+** ~300k hourly data files 
+
+Hourly data since <1979-01-01 Mon 13:00>
+
+
+**  8 daily weather variables
+
+- Minimum temperature
+- Maximum temperature
+- Total precipitation
+- Average solar radiation
+- Average pressure
+- Average specific humidity
+- Average zonal wind speed 
+- Average meridional wind speed
+
+
+** ~100k grid cell locations
+
+- $5'$ (~10km) resolution
+- conterminous United States
+- land only
+
+
+* Tasks and tools
+
+** Download and verify checksums 
+
+- GNU Parallel
+- R
+
+
+** Generate Makeflow DAG
+
+- R
+- Mustache
+
+
+** Aggregate hourly to daily to annual to all-time
+
+- Makeflow
+- Climate Data Operators (CDO)
+
+
+** Write out per-location pSIMS time series
+
+- Parallel R
+
+
+* Templates for Makeflow generation
+
+#+ATTR_LATEX: :float nil :environment lstlisting
+#+BEGIN_SRC R
+  dailyMergeFileTemplate <-
+    "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.merge.nc"
+  
+  hourlyGrbFileTemplate <-
+    "$projectDir/{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb"
+  
+  dailyMergeRuleTemplate <- c(
+    "\n{{> dailyMergeFile}}: {{#hours}}{{> hourlyGrbFiles}} {{/hours}}\n",
+    "\ncdo -O -f nc -t $projectDir/data/cdoPartab mergetime {{#hours}}{{> hourlyGrbFiles}} {{/hours}}{{> dailyMergeFile}}\n")
+
+  d_ply(
+    .data= head( data.frame( POSIXct= nldasHours), n=35),
+    .variables= .( as.Date( POSIXct)),
+    .fun= dumpWhiskerOutput,
+    renderFunction= renderDailyWhiskerData,
+    template= dailyMergeRuleTemplate,
+    partials= list(
+      hourlyGrbFiles= hourlyGrbFileTemplate,
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002")
+#+END_SRC
+
+#+RESULTS:
+:  
+: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb 
+: cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+: 
+: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb 
+: cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+

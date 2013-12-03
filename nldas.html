@@ -1,0 +1,2207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>nldas</title>
+<!-- 2013-12-02 Mon 18:31 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+<meta  name="author" content="Neil Best" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  pre.src-sh:before    { content: 'sh'; }
+  pre.src-bash:before  { content: 'sh'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-R:before     { content: 'R'; }
+  pre.src-perl:before  { content: 'Perl'; }
+  pre.src-java:before  { content: 'Java'; }
+  pre.src-sql:before   { content: 'SQL'; }
+
+  table { border-collapse:collapse; }
+  td, th { vertical-align:top;  }
+  th.right  { text-align: center;  }
+  th.left   { text-align: center;   }
+  th.center { text-align: center; }
+  td.right  { text-align: right;  }
+  td.left   { text-align: left;   }
+  td.center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara:nth-child(2) { display: inline; }
+  .footpara { display: block; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012  Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/javascript" src="http://orgmode.org/mathjax/MathJax.js"></script>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+    MathJax.Hub.Config({
+        // Only one of the two following lines, depending on user settings
+        // First allows browser-native MathML display, second forces HTML/CSS
+        //  config: ["MMLorHTML.js"], jax: ["input/TeX"],
+            jax: ["input/TeX", "output/HTML-CSS"],
+        extensions: ["tex2jax.js","TeX/AMSmath.js","TeX/AMSsymbols.js",
+                     "TeX/noUndefined.js"],
+        tex2jax: {
+            inlineMath: [ ["\\(","\\)"] ],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"], ["\\begin{displaymath}","\\end{displaymath}"] ],
+            skipTags: ["script","noscript","style","textarea","pre","code"],
+            ignoreClass: "tex2jax_ignore",
+            processEscapes: false,
+            processEnvironments: true,
+            preview: "TeX"
+        },
+        showProcessingMessages: true,
+        displayAlign: "center",
+        displayIndent: "2em",
+
+        "HTML-CSS": {
+             scale: 100,
+             availableFonts: ["STIX","TeX"],
+             preferredFont: "TeX",
+             webFont: "TeX",
+             imageFont: "TeX",
+             showMathMenu: true,
+        },
+        MMLorHTML: {
+             prefer: {
+                 MSIE:    "MML",
+                 Firefox: "MML",
+                 Opera:   "HTML",
+                 other:   "HTML"
+             }
+        }
+    });
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">nldas</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">Introduction</a></li>
+<li><a href="#sec-2">Download the hourly data: <code>scripts/nldasDownload.{R,sbatch}</code></a>
+<ul>
+<li><a href="#sec-2-1">Initialize the R session</a>
+<ul>
+<li><a href="#sec-2-1-1">Make the shebang dynamic, perhaps with <code>call-process</code> in elisp.</a></li>
+</ul>
+</li>
+<li><a href="#sec-2-2">Compute the dates of the missing data</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">Work out checksum verification using first URL</a></li>
+<li><a href="#sec-4">Download using GNU Parallel</a></li>
+<li><a href="#sec-5">Download using GNU Parallel and SLURM</a></li>
+<li><a href="#sec-6">Convert GRB metadata to CDO parameter table</a></li>
+<li><a href="#sec-7">Create a mask from the first day's data</a></li>
+<li><a href="#sec-8">Convert byte values to a binary mask</a>
+<ul>
+<li><a href="#sec-8-1">Scaling with gdal<sub>translate</sub> doesn't work</a></li>
+<li><a href="#sec-8-2">Use R!</a></li>
+</ul>
+</li>
+<li><a href="#sec-9">Write out grid cells</a></li>
+<li><a href="#sec-10">Get the bounding box and write CDO grid description</a></li>
+<li><a href="#sec-11">Write makeflow file using Whisker templates</a>
+<ul>
+<li><a href="#sec-11-1">report Org/R/noweb bug in pseudo-heredoc</a></li>
+<li><a href="#sec-11-2">instead define snarf()</a></li>
+<li><a href="#sec-11-3">Need an abstraction on top of whisker</a></li>
+</ul>
+</li>
+<li><a href="#sec-12">Daily aggregates</a>
+<ul>
+<li><a href="#sec-12-1">Create daily merge files</a>
+<ul>
+<li><a href="#sec-12-1-1">Decide whether to tangle &amp; snarf or simply declare templates</a></li>
+</ul>
+</li>
+<li><a href="#sec-12-2">Aggregate hourly values into daily variables</a>
+<ul>
+<li><a href="#sec-12-2-1">cdo setzaxis,surface</a></li>
+<li><a href="#sec-12-2-2">drive daily aggregations with a data structure and a simpler template</a></li>
+</ul>
+</li>
+<li><a href="#sec-12-3">Merge individual variables into annual files</a>
+<ul>
+<li><a href="#sec-12-3-1">Automate the value of <code>year</code> argument as a function of <code>nldasHours</code> or <code>nldasDates</code>.</a></li>
+</ul>
+</li>
+<li><a href="#sec-12-4">Merge individual variables into all-time files</a></li>
+<li><a href="#sec-12-5">Remap the final outputs to \(5'\)</a>
+<ul>
+<li><a href="#sec-12-5-1">This works</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#sec-13">Set up a small test</a>
+<ul>
+<li><a href="#sec-13-1">Refresh the test Makeflow</a></li>
+<li><a href="#sec-13-2">Visualize the test Makeflow</a></li>
+<li><a href="#sec-13-3">Run test Makeflow</a></li>
+</ul>
+</li>
+<li><a href="#sec-14">Write out and run the full Makeflow</a></li>
+<li><a href="#sec-15">Copy the remapped, all-time data to scratch</a></li>
+<li><a href="#sec-16">Write the pSIMS files</a>
+<ul>
+<li><a href="#sec-16-1">Bring the =writePsims.{sh,sbatch,r} code into this document for completeness</a></li>
+</ul>
+</li>
+<li><a href="#sec-17">Clean up intermediate data</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This Emacs Org-mode document describes and demonstrates the workflow
+for transforming NLDAS hourly weather data into pSIMS time series used
+to drive biophysical crop models in the pSIMS framework.  If you are
+reading the file <code>nldas.org</code> you will see many instances of Org
+mark-up syntax used to set apart prose, code, and execution output.
+In the derivative <code>nldas.txt</code> version the presentation will be much
+cleaner but the content becomes static with a table of contents and
+various ASCII art added for readability.  Certain code blocks and/or
+their results are excluded from the export when deemed superfluous or
+excessively verbose.
+</p>
+
+<p>
+Many of the scripts in the <code>scripts/</code> directory are also derived from
+the <code>nldas.org</code> file.  Through the process of "tangling" the source
+code blocks are "tangled", or exported, to the <code>tangle/</code> directory.
+There is logic indicated by the "tangle" target in the the <code>Makefile</code>.
+The Git hook in <code>git-hooks/pre-commit</code> will perform this action
+automatically once activated in your clone as described <a href="http://codeinthehole.com/writing/tips-for-using-a-git-pre-commit-hook/">here</a>.  The
+purpose of this automation is to keep the tangled code in <code>scripts/</code>
+in sync with the dynamic content of <code>nldas.org</code> because both the
+parent document and the derived children are tracked in the Git
+repository.  This behavior can be overridden with <code>git --no-verify</code>
+but this usage is discouraged.  The purpose of the <code>tangle/</code> directory
+and the <code>rsync</code> to the <code>scripts/</code> directory is to ensure that only
+files that change in <code>tangle/</code> are rewritten in <code>scripts/</code> and
+subsequently commited to the Git repository.
+</p>
+
+<p>
+The <code>Makefile</code> included with this project is not incorporated into
+this document due to the recursive dependencies such a relationship
+would create.  It is intended to serve as a roadmap of the workflow
+for the reader who is tracing the logic of the process.  It is
+possible to execute significant portions of the workflow using <code>make</code>
+but this capability has not been tested and should be used with care,
+preferably in a sandbox clone rather than in the master project
+directory on Midway.  For example, the shebang ("#!") strings of the R
+scripts have not been exercised and may preclude automation under
+<code>make</code> for the time being but the primary purpose is to illuminate the
+dependencies among the various scripts and outputs.  However, the
+<code>Makefile</code> is useful for updating the derived scripts after making
+edits in source code blocks within <code>nldas.org</code>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">Download the hourly data: <code>scripts/nldasDownload.{R,sbatch}</code></h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">Initialize the R session</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+
+<pre class="src src-R">library( XML)
+library( stringr)
+
+baseUrl &lt;- "ftp://hydro1.sci.gsfc.nasa.gov/data/s4pa/NLDAS/NLDAS_FORA0125_H.002"
+</pre>
+</div>
+
+<p>
+The base of the NLDAS downloads is <code>src_R[ :exports results]{ baseUrl}</code>.
+</p>
+</div>
+
+<div id="outline-container-sec-2-1-1" class="outline-4">
+<h4 id="sec-2-1-1"><span class="todo TODO">TODO</span> Make the shebang dynamic, perhaps with <code>call-process</code> in elisp.</h4>
+<div class="outline-text-4" id="text-2-1-1">
+<p>
+For now shebang will have to be edited for different systems.
+<code>/usr/bin/R</code> will be fine in many cases, but not on Midway.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">Compute the dates of the missing data</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+The NLDAS archive begins at <span class="timestamp-wrapper"><span class="timestamp">[1979-01-01 13:00]</span></span>.  Our experience is
+that the most recent data available is four days before the present.
+When starting with no data one should use the following date sequence
+to specify the complete collection:
+</p>
+
+<p>
+In order to start a new NLDAS collection or perform an update outside
+of Emacs Org-mode you must edit the <code>#+HEADER: :var</code> parameters of the
+following code block or the corresponding assignment statements in the
+tangled &amp; <code>rsync</code>'d script in <code>scripts/nldasDownload.R</code>.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="nldasDates">nldasDates &lt;-
+  seq(
+    from= ISOdate(
+      year=  fromYear,
+      month= fromMonth,
+      day=   fromDay,
+      hour=  fromHour),
+    to= as.POSIXlt( Sys.Date() - 4),
+    by= "hour")
+</pre>
+</div>
+
+
+
+<p>
+Using the default arguments will populate the data as follows:
+</p>
+
+
+<div class="org-src-container">
+
+<pre class="src src-R">head( nldasDates)
+</pre>
+</div>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">1979-01-01 13:00:00</td>
+</tr>
+
+<tr>
+<td class="left">1979-01-01 14:00:00</td>
+</tr>
+
+<tr>
+<td class="left">1979-01-01 15:00:00</td>
+</tr>
+
+<tr>
+<td class="left">1979-01-01 16:00:00</td>
+</tr>
+
+<tr>
+<td class="left">1979-01-01 17:00:00</td>
+</tr>
+
+<tr>
+<td class="left">1979-01-01 18:00:00</td>
+</tr>
+</tbody>
+</table>
+
+<div class="org-src-container">
+
+<pre class="src src-R">tail( nldasDates)
+</pre>
+</div>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">2013-08-31 19:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-08-31 20:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-08-31 21:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-08-31 22:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-08-31 23:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-09-01 00:00:00</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+When updating an existing collection one should specify the download
+date sequence as follows:
+</p>
+
+<p>
+Simply adjust the arguments in the above <code>#+CALL:</code> and press <code>C-c C-c</code>
+if using Emacs Org-mode.  Otherwise edit the script in
+<code>scripts/nldasDownload.R</code>.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">head(nldasDates)
+</pre>
+</div>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">2013-09-21 01:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-09-21 02:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-09-21 03:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-09-21 04:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-09-21 05:00:00</td>
+</tr>
+
+<tr>
+<td class="left">2013-09-21 06:00:00</td>
+</tr>
+</tbody>
+</table>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="nldasDataUrls">nldasDataUrls &lt;-
+  paste(
+    baseUrl,
+    format( nldasDates, "%Y/%j/NLDAS_FORA0125_H.A%Y%m%d.%H00.002.grb*"),
+    ## format( nldasDates, "%Y/%j"),
+    ## "*.grb*",
+    sep= "/")
+</pre>
+</div>
+
+<p>
+<a href="data/nldasDataUrls">data/nldasDataUrls</a>
+</p>
+
+<p>
+When evaluated within the <code>nldas.org</code> environment the previous block
+takes care of emitting its results to a file, but to run from the
+tangled code we need another small block.  The <code>Makefile</code> directs the
+ouput to the appropriate file.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">cat( nldasDataUrls, sep= "\n")
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">Work out checksum verification using first URL</h2>
+<div class="outline-text-2" id="text-3">
+<div class="org-src-container">
+
+<pre class="src src-R" id="firstNldasDataUrl">head( nldasDataUrls, 1)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh" id="nldasWget">wget \
+    --no-host-directories \
+    --cut-dirs=3 \
+    --directory-prefix=data \
+    --recursive \
+    --quiet \
+    --retry-connrefused \
+    --timestamping \
+    ${url}
+</pre>
+</div>
+
+<p>
+Remember <code>--progress=dot:mega</code> in place of <code>--no-verbose</code>.
+</p>
+
+
+<div class="org-src-container">
+
+<pre class="src src-sh" id="nldasWgetResult">find data/$(echo -n ${url} | cut -d/ -f7-9) \
+    -name $(echo -n ${url} | cut -d/ -f10)
+</pre>
+</div>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="left">data/NLDAS<sub>FORA0125</sub><sub>H</sub>.002/2013/186/NLDAS<sub>FORA0125</sub><sub>H</sub>.A20130705.0000.002.grb</td>
+</tr>
+
+<tr>
+<td class="left">data/NLDAS<sub>FORA0125</sub><sub>H</sub>.002/2013/186/NLDAS<sub>FORA0125</sub><sub>H</sub>.A20130705.0000.002.grb.xml</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">Download using GNU Parallel</h2>
+<div class="outline-text-2" id="text-4">
+<div class="org-src-container">
+
+<pre class="src src-sh">parallel \
+    --jobs 4 \
+    -I '${url}' \
+    --retries 10 \
+    --keep-order \
+    'wget \
+    '    --no-host-directories \
+    '    --cut-dirs=3 \
+    '    --directory-prefix=data \
+    '    --recursive \
+    '    --quiet \
+    '    --retry-connrefused \
+    '    --timestamping \
+    '    ${url}; \
+    find data/$(echo -n ${url} | cut -d/ -f7-9) \
+	-name $(echo -n ${url} | cut -d/ -f10) ' \
+    ::: $(tail -n 4 data/nldasDataUrls) \
+    &gt; data/parallelOutput
+</pre>
+</div>
+
+<p>
+To read the entire file the <code>:::</code> argument above must be replaced by
+<code>::::</code> (four colons) and a bare file name.
+</p>
+
+
+<p>
+Incorporate the checksum verification
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh" id="parallelWget">parallel \
+    --joblog log/parallel.log \
+    --resume \
+    --jobs 4 \
+    -I '${url}' \
+    --keep-order \
+    --retries 10 \
+    'wget \
+    '    --no-host-directories \
+    '    --cut-dirs=3 \
+    '    --directory-prefix=data \
+    '    --recursive \
+    '    --quiet \
+    '    --retry-connrefused \
+    '    --timestamping \
+    '    ${url};
+    find data/$(echo -n ${url} | cut -d/ -f7-9) \
+	-name $(echo -n ${url} | cut -d/ -f10)  | 
+    tee data/parallelOutput |
+    xargs scripts/nldasGrbChecksum.r' \
+    :::: data/nldasDataUrls
+</pre>
+</div>
+
+<p>
+This fragment can be switched into the above code block for quicker
+testing.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">::: $(tail -n 4 data/nldasDataUrls)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="todo TODO">TODO</span> Download using GNU Parallel and SLURM</h2>
+<div class="outline-text-2" id="text-5">
+<div class="org-src-container">
+
+<pre class="src src-sh">module load parallel
+parallel \
+    --jobs $SLURM_NTASKS \
+    -I '${url}' \
+    --keep-order \
+    --retries 10 \
+    'srun --exclusive -N1 -n1 \
+      wget \
+	  --no-host-directories \
+	  --cut-dirs=3 \
+	  --directory-prefix=data \
+	  --recursive \
+	  --quiet \
+	  --retry-connrefused \
+	  --timestamping \
+	  ${url};
+    find data/$(echo -n ${url} | cut -d/ -f7-9) \
+	-name $(echo -n ${url} | cut -d/ -f10)  | 
+    tee data/parallelOutput |
+    xargs scripts/nldasGrbChecksum.r' \
+    :::: data/nldasDataUrls
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sbatch \
+    --ntasks=32 \
+    --exclusive \
+    scripts/parallelWget.sh
+</pre>
+</div>
+
+<pre class="example">
+&gt; &gt; Submitted batch job 6973182
+</pre>
+
+<p>
+It works better now but still experienced some failures and could not
+always log in to the first node.  I am assuming that the latter was a
+SLURM hiccup, so this should be tested again.  It seems like all of
+the tasks may have been running on the first node.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">Convert GRB metadata to CDO parameter table</h2>
+<div class="outline-text-2" id="text-6">
+<div class="org-src-container">
+
+<pre class="src src-sh">~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+    | perl -lpe 's/ \[/:/; s/[\]\"]//g' \
+    | cut -d: -f4,5,6,9,10
+</pre>
+</div>
+
+<pre class="example">
+TMP:2 m above gnd:kpds=11,105,2:Temp.:K
+SPFH:2 m above gnd:kpds=51,105,2:Specific humidity:kg/kg
+PRES:sfc:kpds=1,1,0:Pressure:Pa
+UGRD:10 m above gnd:kpds=33,105,10:u wind:m/s
+VGRD:10 m above gnd:kpds=34,105,10:v wind:m/s
+DLWRF:sfc:kpds=205,1,0:Downward longwave radiation flux:W/m^2
+var153:sfc:kpds=153,1,0:undefined
+CAPE:180-0 mb above gnd:kpds=157,116,46080:Convective available potential energy:J/Kg
+PEVAP:sfc:kpds=228,1,0:Potential evaporation:Kg/m^2
+APCP:sfc:kpds=61,1,0:Total precipitation:kg/m^2
+DSWRF:sfc:kpds=204,1,0:Downward shortwave radiation flux:W/m^2
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">echo '|-' 
+echo '|variable|height|codes|description|units|'
+echo '|-' 
+~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+    | perl -lpe 's/ \[/:/; s/[\]\"]//g' \
+    | cut -d: -f4,5,6,9,10 \
+    | perl -lne 's/:/\|/g; print "|$_|"'
+echo '|-'
+</pre>
+</div>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">variable</th>
+<th scope="col" class="left">height</th>
+<th scope="col" class="left">codes</th>
+<th scope="col" class="left">description</th>
+<th scope="col" class="left">units</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">TMP</td>
+<td class="left">2 m above gnd</td>
+<td class="left">kpds=11,105,2</td>
+<td class="left">Temp.</td>
+<td class="left">K</td>
+</tr>
+
+<tr>
+<td class="left">SPFH</td>
+<td class="left">2 m above gnd</td>
+<td class="left">kpds=51,105,2</td>
+<td class="left">Specific humidity</td>
+<td class="left">kg/kg</td>
+</tr>
+
+<tr>
+<td class="left">PRES</td>
+<td class="left">sfc</td>
+<td class="left">kpds=1,1,0</td>
+<td class="left">Pressure</td>
+<td class="left">Pa</td>
+</tr>
+
+<tr>
+<td class="left">UGRD</td>
+<td class="left">10 m above gnd</td>
+<td class="left">kpds=33,105,10</td>
+<td class="left">u wind</td>
+<td class="left">m/s</td>
+</tr>
+
+<tr>
+<td class="left">VGRD</td>
+<td class="left">10 m above gnd</td>
+<td class="left">kpds=34,105,10</td>
+<td class="left">v wind</td>
+<td class="left">m/s</td>
+</tr>
+
+<tr>
+<td class="left">DLWRF</td>
+<td class="left">sfc</td>
+<td class="left">kpds=205,1,0</td>
+<td class="left">Downward longwave radiation flux</td>
+<td class="left">W/m<sup>2</sup></td>
+</tr>
+
+<tr>
+<td class="left">var153</td>
+<td class="left">sfc</td>
+<td class="left">kpds=153,1,0</td>
+<td class="left">undefined</td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="left">CAPE</td>
+<td class="left">180-0 mb above gnd</td>
+<td class="left">kpds=157,116,46080</td>
+<td class="left">Convective available potential energy</td>
+<td class="left">J/Kg</td>
+</tr>
+
+<tr>
+<td class="left">PEVAP</td>
+<td class="left">sfc</td>
+<td class="left">kpds=228,1,0</td>
+<td class="left">Potential evaporation</td>
+<td class="left">Kg/m<sup>2</sup></td>
+</tr>
+
+<tr>
+<td class="left">APCP</td>
+<td class="left">sfc</td>
+<td class="left">kpds=61,1,0</td>
+<td class="left">Total precipitation</td>
+<td class="left">kg/m<sup>2</sup></td>
+</tr>
+
+<tr>
+<td class="left">DSWRF</td>
+<td class="left">sfc</td>
+<td class="left">kpds=204,1,0</td>
+<td class="left">Downward shortwave radiation flux</td>
+<td class="left">W/m<sup>2</sup></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+These correspond to the values we must give to CDO in a 'parameter table'.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">cat data/cdoPartab
+</pre>
+</div>
+
+<pre class="example">
+11	TMP	air temperature at 2m [K]
+51	SPFH	specific humidity [kg/kg]
+1	PRES	pressure [Pa]
+33	UGRD	u wind [m/s]
+34	VGRD	v wind [m/s]
+205	DLWRF	downward longwave radiation flux [W/m^2]
+153	var153	undefined
+157	CAPE	convective available potential energy [J/kg]
+228	PEVAP	potential evaporation [kg/m^2]
+61	APCP	accumulated precipitation [mm]
+204	DSWRF	downward shortwave radiation [W/m^2]
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7">Create a mask from the first day's data</h2>
+<div class="outline-text-2" id="text-7">
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mkdir data/output
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdalwarp -overwrite \
+    -t_srs EPSG:4326 \
+    -te -180 -90 180 90 \
+    -tr 0.08333333 0.08333333 \
+    -srcnodata 9999 \
+    -dstnodata 9999 \
+    data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+    data/output/nldasMask5minRaw.tif
+</pre>
+</div>
+
+<pre class="example">
+&gt; &gt; &gt; &gt; &gt; &gt; Creating output file that is 4320P x 2160L.
+Processing input file data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb.
+0...10...20...30...40...50...60...70...80...90...100 - done.
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdalinfo data/output/nldasMask5minRaw.tif
+</pre>
+</div>
+
+<pre class="example">
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasMask5minRaw.tif
+Size is 4320, 2160
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-180.000000000000000,90.000000000000000)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=PIXEL
+Corner Coordinates:
+Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+Band 1 Block=4320x1 Type=Float64, ColorInterp=Gray
+  NoData Value=9999
+Band 2 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 3 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 4 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 5 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 6 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 7 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 8 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 9 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 10 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 11 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdal_translate -ot Byte -b 1 \
+    -a_nodata 255 \
+    -scale \
+    data/output/nldasMask5minRaw.tif \
+    data/output/nldasMask5minByte.tif
+</pre>
+</div>
+
+<pre class="example">
+&gt; &gt; &gt; Input file size is 4320, 2160
+0...10...20...30...40...50...60...70...80...90...100 - done.
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdalinfo data/output/nldasMask5minByte.tif
+</pre>
+</div>
+
+<pre class="example">
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasMask5minByte.tif
+Size is 4320, 2160
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-180.000000000000000,90.000000000000000)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=BAND
+Corner Coordinates:
+Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
+  NoData Value=255
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8">Convert byte values to a binary mask</h2>
+<div class="outline-text-2" id="text-8">
+</div><div id="outline-container-sec-8-1" class="outline-3">
+<h3 id="sec-8-1">Scaling with gdal<sub>translate</sub> doesn't work</h3>
+<div class="outline-text-3" id="text-8-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">gdal_translate \
+    -scale 0 254 1 1 \
+    data/output/nldasMask5minByte.tif \
+    data/output/nldasMask5min.tif
+</pre>
+</div>
+
+<pre class="example">
+Input file size is 4320, 2160
+0...10...20...30...40...50...60...70...80...90...100 - done.
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-8-2" class="outline-3">
+<h3 id="sec-8-2">Use R!</h3>
+<div class="outline-text-3" id="text-8-2">
+<div class="org-src-container">
+
+<pre class="src src-R">library( raster)
+
+nldasMask5minByte &lt;- setMinMax(
+  raster( "data/output/nldasMask5minByte.tif"))
+
+nldasMask5min &lt;-
+  raster( nldasMask5minByte)
+NAvalue( nldasMask5min) &lt;- 255
+
+nldasMask5min[] &lt;-
+  ifelse( !is.na( nldasMask5minByte[]), 1, NA)
+
+nldasMask5min &lt;- writeRaster(
+  nldasMask5min,
+  filename= "data/output/nldasMask5min.tif",
+  overwrite= TRUE,
+  datatype= "LOG1S")
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdalinfo data/output/nldasMask5min.tif
+</pre>
+</div>
+
+<pre class="example">
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasMask5min.tif
+Size is 4320, 2160
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-180.000000000000000,90.000000000000000)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  COMPRESSION=LZW
+  INTERLEAVE=BAND
+Corner Coordinates:
+Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
+  Min=1.000 Max=1.000 
+  Minimum=1.000, Maximum=1.000, Mean=1.000, StdDev=0.000
+  NoData Value=255
+  Metadata:
+    STATISTICS_MAXIMUM=1
+    STATISTICS_MEAN=1
+    STATISTICS_MINIMUM=1
+    STATISTICS_STDDEV=0
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-9" class="outline-2">
+<h2 id="sec-9">Write out grid cells</h2>
+<div class="outline-text-2" id="text-9">
+<div class="org-src-container">
+
+<pre class="src src-R">nldasCells5min &lt;- which( as.logical( nldasMask5min[]))
+
+cat(
+  nldasCells5min,
+  file= "data/output/nldasCells5min.txt",
+  sep= "\n")
+</pre>
+</div>
+
+
+<div class="org-src-container">
+
+<pre class="src src-sh">head data/output/nldasCells5min.txt
+</pre>
+</div>
+
+<pre class="example">
+1918741
+1918742
+1918743
+1918744
+1918745
+1918746
+1918747
+1918748
+1918749
+1918750
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-10" class="outline-2">
+<h2 id="sec-10">Get the bounding box and write CDO grid description</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+CDO needs a "grid description" file to perform the resampling of the
+native-resolution data to our \(5'\) grid.  Along the way a raster mask
+indicating where data is available from the NLDAS dataset is produced.
+This is used later in <code>scripts/writePsims.r</code> (see function
+<code>writePsimsNc()</code>) to determine which directories corresponding to grid
+cells in the row/column pSIMS data file tree are to be created and
+populated.
+</p>
+
+
+<div class="org-src-container">
+
+<pre class="src src-R">library( raster)
+nldasMask5min &lt;- raster( "data/output/nldasMask5min.tif")
+nldasRegion &lt;- trim( nldasMask5min, filename= "data/output/nldasRegion.tif")
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdalwarp -overwrite \
+    -t_srs EPSG:4326 \
+    -tr 0.08333333 0.08333333 \
+    -srcnodata 9999 \
+    -dstnodata 9999 \
+    # data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+    $( find data/NLDAS_FORA0125_H.002 -type f -name "*.grb" | head -n 1) \
+    data/output/nldasRegionRaw.tif
+</pre>
+</div>
+
+<pre class="example">
+&gt; &gt; &gt; &gt; &gt; Creating output file that is 696P x 336L.
+Processing input file data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb.
+0...10...20...30...40...50...60...70...80...90...100 - done.
+</pre>
+
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdalinfo data/output/nldasRegionRaw.tif
+</pre>
+</div>
+
+<pre class="example">
+Driver: GTiff/GeoTIFF
+Files: data/output/nldasRegionRaw.tif
+Size is 696, 336
+Coordinate System is:
+GEOGCS["WGS 84",
+    DATUM["WGS_1984",
+        SPHEROID["WGS 84",6378137,298.257223563,
+            AUTHORITY["EPSG","7030"]],
+        AUTHORITY["EPSG","6326"]],
+    PRIMEM["Greenwich",0],
+    UNIT["degree",0.0174532925199433],
+    AUTHORITY["EPSG","4326"]]
+Origin = (-125.000500000000002,53.000500000000002)
+Pixel Size = (0.083333330000000,-0.083333330000000)
+Metadata:
+  AREA_OR_POINT=Area
+Image Structure Metadata:
+  INTERLEAVE=PIXEL
+Corner Coordinates:
+Upper Left  (-125.0005000,  53.0005000) (125d 0' 1.80"W, 53d 0' 1.80"N)
+Lower Left  (-125.0005000,  25.0005011) (125d 0' 1.80"W, 25d 0' 1.80"N)
+Upper Right ( -67.0005023,  53.0005000) ( 67d 0' 1.81"W, 53d 0' 1.80"N)
+Lower Right ( -67.0005023,  25.0005011) ( 67d 0' 1.81"W, 25d 0' 1.80"N)
+Center      ( -96.0005012,  39.0005006) ( 96d 0' 1.80"W, 39d 0' 1.80"N)
+Band 1 Block=696x1 Type=Float64, ColorInterp=Gray
+  NoData Value=9999
+Band 2 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 3 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 4 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 5 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 6 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 7 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 8 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 9 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 10 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
+  NoData Value=9999
+</pre>
+
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gdal_translate -ot Byte -b 1 \
+    -a_nodata 255 \
+    -scale \
+    data/output/nldasRegionRaw.tif \
+    data/output/nldasRegionByte.tif
+</pre>
+</div>
+
+<pre class="example">
+&gt; &gt; &gt; Input file size is 696, 336
+0...10...20...30...40...50...60...70...80...90...100 - done.
+</pre>
+
+<p>
+This byte file serves as a boolean mask from which a grid cell ID or
+row/col list can be generated.  It seems that it is not explicitly
+used elsewhere for now.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R">griddesFormat &lt;- 
+  "gridtype = lonlat
+xsize    = %d
+ysize    = %d
+xfirst   = %13.8f
+xinc     = %13.8f
+yfirst   = %13.8f
+yinc     = %13.8f\n"
+
+griddes &lt;- 
+  sprintf(
+    griddesFormat,
+    ncol( nldasRegion),
+    nrow( nldasRegion),
+    xmin( nldasRegion),
+    res( nldasRegion)[1],
+    ymin( nldasRegion),
+    res( nldasRegion)[2])
+
+cat( griddes, file= "data/output/nldas_5min.grid")
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">cat( griddes)
+</pre>
+</div>
+
+<pre class="example">
+gridtype = lonlat
+xsize    = 696
+ysize    = 336
+xfirst   = -125.00000220
+xinc     =    0.08333333
+yfirst   =   25.00000260
+yinc     =    0.08333333
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-11" class="outline-2">
+<h2 id="sec-11">Write makeflow file using Whisker templates</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+In order to start a new NLDAS collection or perform an update outside
+of Emacs Org-mode you must edit the <code>#+HEADER: :var</code> parameters of the
+following code block or the corresponding assignment statements in the
+tangled &amp; <code>rsync</code>'d script in <code>scripts/writeMakeflow.R</code>.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="nldasHours">library( whisker)
+library( plyr)
+library( doMC)
+registerDoMC(4)
+
+nldasHours &lt;- seq(
+  from= ISOdatetime(
+    year=  fromYear,
+    month= fromMonth,
+    day=   fromDay,
+    hour=  fromHour,
+    min=      0,
+    sec=      0,
+    tz=   "GMT"),
+  ## to= as.POSIXct( Sys.Date() - 4 -1/24),
+  to= strptime( sprintf( "%s23", lastFullDay), format= "%Y%j%H", tz="GMT"),
+  by= "hour")
+
+nldasDates &lt;- seq(
+  from= as.Date( nldasHours[ 1]),
+  ## to=   as.Date( nldasHours[ length( nldasHours)]),
+  to= as.Date( lastFullDay, format= "%Y%j"),
+  by= "day")
+</pre>
+</div>
+
+<p>
+Use the above like so to avoid processing data that is already aggregated.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-mustache" id="hourlyTemplate">{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc: {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{cdoGrid}}
+cdo -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-11-1" class="outline-3">
+<h3 id="sec-11-1"><span class="todo TODO">TODO</span> report Org/R/noweb bug in pseudo-heredoc</h3>
+<div class="outline-text-3" id="text-11-1">
+<div class="org-src-container">
+
+<pre class="src src-R">template &lt;- "
+
+{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc: {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{cdoGrid}}
+cdo -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc"
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-11-2" class="outline-3">
+<h3 id="sec-11-2">instead define snarf()</h3>
+<div class="outline-text-3" id="text-11-2">
+<div class="org-src-container">
+
+<pre class="src src-R">snarf &lt;- function( fn) {
+  readChar( fn, file.info( fn)$size)
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">template &lt;- snarf( "tangle/hourlyTemplate.mustache")
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-11-3" class="outline-3">
+<h3 id="sec-11-3">Need an abstraction on top of whisker</h3>
+<div class="outline-text-3" id="text-11-3">
+<div class="org-src-container">
+
+<pre class="src src-R">getHourlyWhiskerData &lt;- function( POSIXct, ...) {
+  list(
+    Yj= format( POSIXct, "%Y/%j"),
+    Ymd= format( POSIXct, "%Y%m%d"),
+    H= format( POSIXct, "%H"),
+    ...)
+}
+
+renderHourlyWhiskerData &lt;- function( POSIXct, template, partials, ...) {
+  data &lt;- getHourlyWhiskerData( POSIXct, ...)
+  whisker.render(
+    template,
+    data= data,
+    partials= partials)
+}  
+
+dumpWhiskerOutput &lt;- function(
+  ...,
+  renderFunction= renderHourlyWhiskerData,
+  file= "")
+{
+  cat(
+    renderFunction( ...),
+    file= file,
+    append= TRUE)
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-12" class="outline-2">
+<h2 id="sec-12">Daily aggregates</h2>
+<div class="outline-text-2" id="text-12">
+</div><div id="outline-container-sec-12-1" class="outline-3">
+<h3 id="sec-12-1">Create daily merge files</h3>
+<div class="outline-text-3" id="text-12-1">
+<div class="org-src-container">
+
+<pre class="src src-R">dailyMergeFileTemplate &lt;-
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.merge.nc"
+
+hourlyGrbFileTemplate &lt;-
+  "$projectDir/{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb"
+
+## dailyMergeRuleTemplate &lt;- paste(
+##   "{{&gt; dailyMergeFile}}: {{#hours}}{{&gt; hourlyGrbFiles}} {{/hours}}",
+##   "cdo -t data/cdoPartab mergetime {{#hours}}{{&gt; hourlyGrbFiles}} {{/hours}}{{&gt; dailyMergeFile}}",
+##   "\n",
+##   sep= "\n\n")
+
+dailyMergeRuleTemplate &lt;- c(
+  "\n{{&gt; dailyMergeFile}}: {{#hours}}{{&gt; hourlyGrbFiles}} {{/hours}}\n",
+  "\ncdo -O -f nc -t $projectDir/data/cdoPartab mergetime {{#hours}}{{&gt; hourlyGrbFiles}} {{/hours}}{{&gt; dailyMergeFile}}\n")
+
+## makeflowRecipe &lt;-
+##   whisker.render(
+##     template= dailyMergeRuleTemplate,
+##     data= list(
+##       hours= unname(
+##         rowSplit(
+##           data.frame(
+##             getHourlyWhiskerData(
+##               head( nldasHours, n=24))))),
+##       dataDir= "data/NLDAS_FORA0125_H.002",
+##       dailyYj= "1979/001",
+##       dailyYmd= "19790101"),    
+##     partials= list(
+##       hourlyGrbFiles= hourlyGrbFileTemplate,
+##       dailyMergeFile= dailyMergeFileTemplate))
+
+getDailyWhiskerData &lt;- function( POSIXct, ...) {
+  nldasDate &lt;- unique( as.Date( POSIXct))
+  list(
+    dailyYj= format( nldasDate, "%Y/%j"),
+    dailyYmd= format( nldasDate, "%Y%m%d"),
+    hours= unname(
+      rowSplit(
+	data.frame(
+	  getHourlyWhiskerData( POSIXct)))),
+    ...)
+}
+
+## renderDailyWhiskerData &lt;- function( POSIXct, template, partials, ...) {
+##   data &lt;- list(
+##     unlist( getDailyWhiskerData( unique( as.Date( POSIXct)))),
+##     hours= unname(
+##       rowSplit(
+##         data.frame(
+##           getHourlyWhiskerData( POSIXct)))),
+##     ...)
+##   whisker.render(
+##     template,
+##     data= data,
+##     partials= partials)
+## }
+
+renderDailyWhiskerData &lt;- function( POSIXct, template, partials, ...) {
+  data &lt;- getDailyWhiskerData( POSIXct[,1], ...)
+  whisker.render(
+    template,
+    data= data,
+    partials= partials)
+}
+
+## renderDailyWhiskerData(
+##   data.frame( head( nldasHours)),
+##   dailyMergeRuleTemplate,
+##   partials= list(
+##     hourlyGrbFiles= hourlyGrbFileTemplate,
+##     dailyMergeFile= dailyMergeFileTemplate),
+##   dataDir= "data/NLDAS_FORA0125_H.002")
+
+
+## dailyRules &lt;- daply(
+##   .data= head( data.frame( POSIXct= nldasHours), n=35),
+##   .variables= .( as.Date( POSIXct)),
+##   .fun= renderDailyWhiskerData,
+##   template= dailyMergeRuleTemplate,
+##   partials= list(
+##     hourlyGrbFiles= hourlyGrbFileTemplate,
+##     dailyMergeFile= dailyMergeFileTemplate),
+##   dataDir= "data/NLDAS_FORA0125_H.002")
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">d_ply(
+  .data= head( data.frame( POSIXct= nldasHours), n=35),
+  .variables= .( as.Date( POSIXct)),
+  .fun= dumpWhiskerOutput,
+  renderFunction= renderDailyWhiskerData,
+  template= dailyMergeRuleTemplate,
+  partials= list(
+    hourlyGrbFiles= hourlyGrbFileTemplate,
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002")
+</pre>
+</div>
+
+<pre class="example">
+ 
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb 
+cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb 
+cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="newMakeflowFile">file.remove( fn)
+cat(
+  "CORES=1",
+  "projectDir=/project/joshuaelliott/nldas\n",
+  sep= "\n",
+  file= fn)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeMergetimeRulesTest">d_ply(
+  .data= head( data.frame( POSIXct= nldasHours), n=35),
+  ## .data= head(
+  ##   nldasHours[ nldasHours &gt; as.POSIXlt(
+  ##     "1979-01-01 23:00:00",
+  ##     tz= "GMT")],
+  ##   24),
+  .variables= .( as.Date( POSIXct)),
+  .fun= dumpWhiskerOutput,
+  renderFunction= renderDailyWhiskerData,
+  template= dailyMergeRuleTemplate,
+  partials= list(
+    hourlyGrbFiles= hourlyGrbFileTemplate,
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002",
+  file= "Makeflow.test")
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeMergetimeRules">d_ply( 
+  .data= data.frame( POSIXct= nldasHours),
+  .variables= .( as.Date( POSIXct)),
+  .fun= dumpWhiskerOutput,
+  .parallel= TRUE,
+  renderFunction= renderDailyWhiskerData,
+  template= dailyMergeRuleTemplate,
+  partials= list(
+    hourlyGrbFiles= hourlyGrbFileTemplate,
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002",
+  file= "Makeflow")
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-12-1-1" class="outline-4">
+<h4 id="sec-12-1-1"><span class="todo TODO">TODO</span> Decide whether to tangle &amp; snarf or simply declare templates</h4>
+<div class="outline-text-4" id="text-12-1-1">
+<p>
+This one is not used.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-mustache" id="dailyTemplate">{{dataDir}}/{{Ym}}/NLDAS_FORA0125_H.A{{Ymd}}.merge.nc:  {{dataDir}}/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.nc
+	$cdoExecutable -f nc mergetime $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-12-2" class="outline-3">
+<h3 id="sec-12-2">Aggregate hourly values into daily variables</h3>
+<div class="outline-text-3" id="text-12-2">
+<div class="org-src-container">
+
+<pre class="src src-mustache">{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,tmin -timmin -selname,TMP {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,precip -timsum -selname,APCP {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,pres -timavg -selname,PRES {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc
+{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc: {{&gt; dailyMergeFile}}
+cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{&gt; dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">dailyAggRuleTemplate &lt;- paste(
+  "",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,tmin -timmin -selname,TMP {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,precip -timsum -selname,APCP {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,pres -timavg -selname,PRES {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc\n",
+  "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc: {{&gt; dailyMergeFile}}",
+  "cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{&gt; dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc\n",
+    sep= "\n")
+
+renderDailyAggData &lt;- function( nldasDate, template, partials, ...) {
+  data &lt;- list(
+    dailyYj= format( nldasDate, "%Y/%j"),
+    dailyYmd= format( nldasDate, "%Y%m%d"),
+    ...)
+  whisker.render(
+    template,
+    data= data,
+    partials= partials)
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">cat( renderDailyAggData(
+  head( nldasDates, n=1),
+  template= dailyAggRuleTemplate,
+  partials= list(
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002"))
+</pre>
+</div>
+
+<pre class="example">
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,tmax -timmax -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,tmin -timmin -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,precip -timsum -selname,APCP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,pres -timavg -selname,PRES $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,u -timavg -selname,UGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc
+
+$projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeAggregationRulesTest">cat(
+  laply(
+    .data= head( nldasDates, 2),
+    .fun= renderDailyAggData,
+    template= dailyAggRuleTemplate,
+    partials= list(
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002"),
+  file= "Makeflow.test",
+  append= TRUE)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeAggregationRules">cat(
+  laply(
+    .data= nldasDates,
+    .fun= renderDailyAggData,
+    template= dailyAggRuleTemplate,
+    partials= list(
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002"),
+  file= "Makeflow",
+  append= TRUE)
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-12-2-1" class="outline-4">
+<h4 id="sec-12-2-1"><span class="done DONE">DONE</span> cdo setzaxis,surface</h4>
+</div>
+
+<div id="outline-container-sec-12-2-2" class="outline-4">
+<h4 id="sec-12-2-2"><span class="todo TODO">TODO</span> drive daily aggregations with a data structure and a simpler template</h4>
+</div>
+</div>
+
+<div id="outline-container-sec-12-3" class="outline-3">
+<h3 id="sec-12-3">Merge individual variables into annual files</h3>
+<div class="outline-text-3" id="text-12-3">
+<div class="org-src-container">
+
+<pre class="src src-R">psimsVars &lt;- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
+
+annualTargetTemplate &lt;-
+  "{{outputDir}}/{{var}}_nldas_{{year}}_0125.nc4"
+
+annualSourceTemplate &lt;-
+  "{{inputDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.{{var}}.nc"
+
+annualRecipeTemplate &lt;- c(
+  "\n{{&gt; annualTarget}}: {{# days}}{{&gt; annualSource}} {{/ days}}\n",
+  "\n(find {{inputDir}}/{{year}} -name \"*.{{var}}.nc\" | sort; echo {{&gt; annualTarget}}) | xargs cdo -O -f nc4 -z zip mergetime\n")
+
+renderAnnualRecipe &lt;- function(
+  ## var,  year,
+  df,
+  template= annualRecipeTemplate,
+  partials= list(
+    annualTarget= annualTargetTemplate,
+    annualSource= annualSourceTemplate),
+  days= nldasDates[ format( nldasDates, "%Y") == df$year],
+  ...)
+{
+  data &lt;- with( df, list(
+    var= var,
+    year= year,
+    days= unname(
+      rowSplit(
+	data.frame(
+	  var= var,
+	  dailyYj= format( days, "%Y/%j"),
+	  dailyYmd= format( days, "%Y%m%d")))),
+    inputDir= "$projectDir/data/NLDAS_FORA0125_H.002",
+    outputDir= "$projectDir/data/annual"))
+  whisker.render(
+    template,
+    data,
+    partials)
+}
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-12-3-1" class="outline-4">
+<h4 id="sec-12-3-1"><span class="todo TODO">TODO</span> Automate the value of <code>year</code> argument as a function of <code>nldasHours</code> or <code>nldasDates</code>.</h4>
+<div class="outline-text-4" id="text-12-3-1">
+<p>
+When performing an update to an existing pSIMS collection the <code>year</code>
+variable should only contain values covered by <code>nldasHours</code>.  When
+writing a new pSIMS collection the commented value should be used.
+This could be done more intelligently by automating this logic.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-12-4" class="outline-3">
+<h3 id="sec-12-4">Merge individual variables into all-time files</h3>
+<div class="outline-text-3" id="text-12-4">
+<div class="org-src-container">
+
+<pre class="src src-R">psimsVars &lt;- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
+
+allTimeTargetTemplate &lt;-
+  "{{outputDir}}/{{var}}_nldas_1979-2013_0125.nc4"
+
+allTimeSourceTemplate &lt;-
+  "{{annualDir}}/{{var}}_nldas_{{year}}_0125.nc4"
+
+allTimeRecipeTemplate &lt;- c(
+  "\n{{&gt; allTimeTarget}}: {{# years}}{{&gt; allTimeSource}} {{/ years}}\n",
+  "\n(find {{annualDir}} -name \"{{var}}_nldas_????_0125.nc4\" | sort; echo {{&gt; allTimeTarget}}) | xargs cdo -O -f nc4 -z zip mergetime\n")
+
+renderAllTimeRecipe &lt;- function(
+  var,
+  template= allTimeRecipeTemplate,
+  partials= list(
+    allTimeTarget= allTimeTargetTemplate,
+    allTimeSource= allTimeSourceTemplate),
+  years= 1979:2013,
+  ...)
+{
+  data &lt;- list(
+    var= var,
+    years= iteratelist( years, value= "year"),
+    annualDir= "$projectDir/data/annual",
+    outputDir= "$projectDir/data/full",
+    ...)
+  whisker.render(
+    template,
+    data,
+    partials)
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">cat( renderAllTimeRecipe( "tmax" ), "\n")
+</pre>
+</div>
+
+<pre class="example">
+$projectDir/data/full/tmax_nldas_1979-2013_0125.nc4: $projectDir/data/annual/tmax_nldas_1979_0125.nc4 $projectDir/data/annual/tmax_nldas_1980_0125.nc4 $projectDir/data/annual/tmax_nldas_1981_0125.nc4 $projectDir/data/annual/tmax_nldas_1982_0125.nc4 $projectDir/data/annual/tmax_nldas_1983_0125.nc4 $projectDir/data/annual/tmax_nldas_1984_0125.nc4 $projectDir/data/annual/tmax_nldas_1985_0125.nc4 $projectDir/data/annual/tmax_nldas_1986_0125.nc4 $projectDir/data/annual/tmax_nldas_1987_0125.nc4 $projectDir/data/annual/tmax_nldas_1988_0125.nc4 $projectDir/data/annual/tmax_nldas_1989_0125.nc4 $projectDir/data/annual/tmax_nldas_1990_0125.nc4 $projectDir/data/annual/tmax_nldas_1991_0125.nc4 $projectDir/data/annual/tmax_nldas_1992_0125.nc4 $projectDir/data/annual/tmax_nldas_1993_0125.nc4 $projectDir/data/annual/tmax_nldas_1994_0125.nc4 $projectDir/data/annual/tmax_nldas_1995_0125.nc4 $projectDir/data/annual/tmax_nldas_1996_0125.nc4 $projectDir/data/annual/tmax_nldas_1997_0125.nc4 $projectDir/data/annual/tmax_nldas_1998_0125.nc4 $projectDir/data/annual/tmax_nldas_1999_0125.nc4 $projectDir/data/annual/tmax_nldas_2000_0125.nc4 $projectDir/data/annual/tmax_nldas_2001_0125.nc4 $projectDir/data/annual/tmax_nldas_2002_0125.nc4 $projectDir/data/annual/tmax_nldas_2003_0125.nc4 $projectDir/data/annual/tmax_nldas_2004_0125.nc4 $projectDir/data/annual/tmax_nldas_2005_0125.nc4 $projectDir/data/annual/tmax_nldas_2006_0125.nc4 $projectDir/data/annual/tmax_nldas_2007_0125.nc4 $projectDir/data/annual/tmax_nldas_2008_0125.nc4 $projectDir/data/annual/tmax_nldas_2009_0125.nc4 $projectDir/data/annual/tmax_nldas_2010_0125.nc4 $projectDir/data/annual/tmax_nldas_2011_0125.nc4 $projectDir/data/annual/tmax_nldas_2012_0125.nc4 $projectDir/data/annual/tmax_nldas_2013_0125.nc4 
+(find $projectDir/data/annual -name "tmax_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeAllTimeRulesTest">cat(
+  laply(
+    .data= psimsVars,
+    .fun= renderAllTimeRecipe,
+    years= 1979),
+  file= "Makeflow.test",
+  append= TRUE)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeAllTimeRules">cat(
+  laply(
+    .data= psimsVars,
+    .fun= renderAllTimeRecipe),
+  file= "Makeflow",
+  append= TRUE)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-12-5" class="outline-3">
+<h3 id="sec-12-5">Remap the final outputs to \(5'\)</h3>
+<div class="outline-text-3" id="text-12-5">
+<div class="org-src-container">
+
+<pre class="src src-R">remapTargetTemplate &lt;-
+  "{{outputDir}}/{{var}}_nldas_1979-2013.nc4"
+</pre>
+</div>
+</div>
+
+
+<div id="outline-container-sec-12-5-1" class="outline-4">
+<h4 id="sec-12-5-1">This works</h4>
+<div class="outline-text-4" id="text-12-5-1">
+<div class="org-src-container">
+
+<pre class="src src-R">remapRecipeData &lt;- unname(
+  rowSplit(
+    data.frame(
+      var= psimsVars,
+      inputDir= "$projectDir/data/annual",
+      outputDir= "$projectDir/data/full")))
+
+## remapRecipeTemplate &lt;- "
+## {{# remapRecipeData}}
+## {{&gt; remapTarget}}: {{&gt; allTimeTarget}}
+##
+## cdo remapnn,data/nldas_5min.grid {{&gt; allTimeTarget}} {{&gt; remapTarget}}
+##
+## {{/ remapRecipeData}}"
+
+remapRecipeTemplate &lt;- c(
+"{{# remapRecipeData}}",
+"{{&gt; remapTarget}}: {{&gt; allTimeTarget}}",
+"",
+"\ncdo remapnn,$projectDir/data/nldas_5min.grid {{&gt; allTimeTarget}} {{&gt; remapTarget}}",
+"",
+"{{/ remapRecipeData}}")
+##remapRecipeTemplate &lt;- paste( remapRecipeTemplate, sep= "\n")
+remapRecipeTemplate &lt;- paste( remapRecipeTemplate, collapse= "\n")
+
+
+remapRecipes &lt;-
+  whisker.render(
+    remapRecipeTemplate,
+    partials= list(
+      allTimeTarget= allTimeTargetTemplate,
+      remapTarget= remapTargetTemplate))
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R">cat( remapRecipes)
+</pre>
+</div>
+
+<pre class="example">
+$projectDir/data/full/tmax_nldas_1979-2013.nc4: $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmax_nldas_1979-2013.nc4
+
+$projectDir/data/full/tmin_nldas_1979-2013.nc4: $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmin_nldas_1979-2013.nc4
+
+$projectDir/data/full/precip_nldas_1979-2013.nc4: $projectDir/data/full/precip_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/precip_nldas_1979-2013_0125.nc4 $projectDir/data/full/precip_nldas_1979-2013.nc4
+
+$projectDir/data/full/solar_nldas_1979-2013.nc4: $projectDir/data/full/solar_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/solar_nldas_1979-2013_0125.nc4 $projectDir/data/full/solar_nldas_1979-2013.nc4
+
+$projectDir/data/full/pres_nldas_1979-2013.nc4: $projectDir/data/full/pres_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/pres_nldas_1979-2013_0125.nc4 $projectDir/data/full/pres_nldas_1979-2013.nc4
+
+$projectDir/data/full/spfh_nldas_1979-2013.nc4: $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4 $projectDir/data/full/spfh_nldas_1979-2013.nc4
+
+$projectDir/data/full/u_nldas_1979-2013.nc4: $projectDir/data/full/u_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/u_nldas_1979-2013_0125.nc4 $projectDir/data/full/u_nldas_1979-2013.nc4
+
+$projectDir/data/full/v_nldas_1979-2013.nc4: $projectDir/data/full/v_nldas_1979-2013_0125.nc4
+cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/v_nldas_1979-2013_0125.nc4 $projectDir/data/full/v_nldas_1979-2013.nc4
+</pre>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeRemapRules">cat( "\n", remapRecipes, file= "Makeflow", append= TRUE)
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-R" id="writeRemapRulesTest">cat( "\n", remapRecipes, file= "Makeflow.test", append= TRUE)
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-13" class="outline-2">
+<h2 id="sec-13">Set up a small test</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+First two days of data.
+</p>
+</div>
+
+<div id="outline-container-sec-13-1" class="outline-3">
+<h3 id="sec-13-1">Refresh the test Makeflow</h3>
+<div class="outline-text-3" id="text-13-1">
+<div class="org-src-container">
+
+<pre class="src src-R" id="refreshTestMakeflow">d_ply(
+  .data= head( data.frame( POSIXct= nldasHours), n=35),
+  ## .data= head(
+  ##   nldasHours[ nldasHours &gt; as.POSIXlt(
+  ##     "1979-01-01 23:00:00",
+  ##     tz= "GMT")],
+  ##   24),
+  .variables= .( as.Date( POSIXct)),
+  .fun= dumpWhiskerOutput,
+  renderFunction= renderDailyWhiskerData,
+  template= dailyMergeRuleTemplate,
+  partials= list(
+    hourlyGrbFiles= hourlyGrbFileTemplate,
+    dailyMergeFile= dailyMergeFileTemplate),
+  dataDir= "data/NLDAS_FORA0125_H.002",
+  file= "Makeflow.test")
+cat(
+  laply(
+    .data= head( nldasDates, 2),
+    .fun= renderDailyAggData,
+    template= dailyAggRuleTemplate,
+    partials= list(
+      dailyMergeFile= dailyMergeFileTemplate),
+    dataDir= "data/NLDAS_FORA0125_H.002"),
+  file= "Makeflow.test",
+  append= TRUE)
+cat(
+  unlist(
+    dlply(
+      .data= expand.grid(
+	var= psimsVars,
+	year= 1979),
+      .variables= c( "var", "year"),
+      .fun= renderAnnualRecipe,
+      days= nldasDates[1:2])),
+  file= "Makeflow.test",
+  append= TRUE)
+cat(
+  laply(
+    .data= psimsVars,
+    .fun= renderAllTimeRecipe,
+    years= 1979),
+  file= "Makeflow.test",
+  append= TRUE)
+cat( "\n", remapRecipes, file= "Makeflow.test", append= TRUE)
+</pre>
+</div>
+
+<p>
+So far we have only specified the first two days of data.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-13-2" class="outline-3">
+<h3 id="sec-13-2">Visualize the test Makeflow</h3>
+<div class="outline-text-3" id="text-13-2">
+<div class="org-src-container">
+
+<pre class="src src-sh" id="makeflowTestDot">makeflow -D dot Makeflow.test &gt;  Makeflow.test.dot
+</pre>
+</div>
+
+<p>
+Edit the DOT file by hand to make labels shorter.
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh" id="renderMakeflowTestDotPng">cat Makeflow.test.edited.dot | dot -T png -o Makeflow.test.png
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="Makeflow.test.png" alt="Makeflow.test.png" />
+</p>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh" id="renderMakeflowTestDotSvg">cat Makeflow.test.edited.dot | dot -T svg -o Makeflow.test.svg
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="Makeflow.test.svg" alt="Makeflow.test.svg" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-13-3" class="outline-3">
+<h3 id="sec-13-3">Run test Makeflow</h3>
+<div class="outline-text-3" id="text-13-3">
+<div class="org-src-container">
+
+<pre class="src src-sh">## PATH=~/local/cctools/bin:$PATH
+makeflow -c Makeflow.test
+slurm_submit_workers --cores 0 -p "--time=60" midway-login2 9123 4
+makeflow -Tworkqueue-sharedfs Makeflow.test
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-14" class="outline-2">
+<h2 id="sec-14">Write out and run the full Makeflow</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+Rewriting the Makeflow file begins with removing the existing copy.
+Subsequent operations all use append operations.  This is why there is
+an <code>rm</code> command in the <code>Makefile</code>.
+</p>
+
+<p>
+Code blocks that are described above are gathered together in
+<code>scripts/writeMakeflow.R</code> and so are not re-exported here, but
+logically this is where the execution of <code>scripts/writeMakeflow.R</code>
+occurs and the <code>Makeflow</code> file is created.
+</p>
+
+
+<p>
+The next block should not be exectuted until you have a build of
+CCTools installed in your environment and you study its
+<code>slurm_submit_workers</code> script, or the appropriate resource manager for
+your environment (SGE, Condor, etc.),  to understand thoroughly what
+is going on here.  For now creating the <code>Makeflow</code> file is the default
+action of the <code>Makefile</code> and subsequent steps should be executed
+manually. 
+</p>
+
+
+<div class="org-src-container">
+
+<pre class="src src-sh">PATH=~/local/cctools/bin:$PATH
+makeflow -c
+slurm_submit_workers --cores 0 -p "--time=120" midway-login2 9123 8
+makeflow -Tworkqueue-sharedfs
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-15" class="outline-2">
+<h2 id="sec-15">Copy the remapped, all-time data to scratch</h2>
+<div class="outline-text-2" id="text-15">
+<p>
+This was necessary to alleviate some I/O resource issues on Midway.
+The scripts in the following section look for a copy of their input
+data on scratch, so if there is old data there and you forget this
+step your results will not be what you expect.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-16" class="outline-2">
+<h2 id="sec-16">Write the pSIMS files</h2>
+<div class="outline-text-2" id="text-16">
+</div><div id="outline-container-sec-16-1" class="outline-3">
+<h3 id="sec-16-1"><span class="todo TODO">TODO</span> Bring the =writePsims.{sh,sbatch,r} code into this document for completeness</h3>
+<div class="outline-text-3" id="text-16-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">scripts/writePsims.sh
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-17" class="outline-2">
+<h2 id="sec-17">Clean up intermediate data</h2>
+<div class="outline-text-2" id="text-17">
+<div class="org-src-container">
+
+<pre class="src src-sh">find data/NLDAS_FORA0125_H.002 -name "*.nc" -delete
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Neil Best</p>
+<p class="date">Created: 2013-12-02 Mon 18:31</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.2)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

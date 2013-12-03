@@ -1,0 +1,1578 @@
+			      ━━━━━━━━━━━
+				 NLDAS
+
+
+			       Neil Best
+			      ━━━━━━━━━━━
+
+
+Table of Contents
+─────────────────
+
+Introduction
+Download the hourly data: `scripts/nldasDownload.{R,sbatch}'
+.. Initialize the R session
+..... TODO Make the shebang dynamic, perhaps with `call-process' in elisp.
+.. Compute the dates of the missing data
+Work out checksum verification using first URL
+Download using GNU Parallel
+TODO Download using GNU Parallel and SLURM
+Convert GRB metadata to CDO parameter table
+Create a mask from the first day's data
+Convert byte values to a binary mask
+.. Scaling with gdal_translate doesn't work
+.. Use R!
+Write out grid cells
+Get the bounding box and write CDO grid description
+Write makeflow file using Whisker templates
+.. TODO report Org/R/noweb bug in pseudo-heredoc
+.. instead define snarf()
+.. Need an abstraction on top of whisker
+Daily aggregates
+.. Create daily merge files
+..... TODO Decide whether to tangle & snarf or simply declare templates
+.. Aggregate hourly values into daily variables
+..... DONE cdo setzaxis,surface
+..... TODO drive daily aggregations with a data structure and a simpler template
+.. Merge individual variables into annual files
+..... TODO Automate the value of `year' argument as a function of `nldasHours' or `nldasDates'.
+.. Merge individual variables into all-time files
+.. Remap the final outputs to $5'$
+..... This works
+Set up a small test
+.. Refresh the test Makeflow
+.. Visualize the test Makeflow
+.. Run test Makeflow
+Write out and run the full Makeflow
+Copy the remapped, all-time data to scratch
+Write the pSIMS files
+.. TODO Bring the =writePsims.{sh,sbatch,r} code into this document for completeness
+Clean up intermediate data
+
+
+
+
+
+Introduction
+════════════
+
+  This Emacs Org-mode document describes and demonstrates the workflow
+  for transforming NLDAS hourly weather data into pSIMS time series used
+  to drive biophysical crop models in the pSIMS framework.  If you are
+  reading the file `nldas.org' you will see many instances of Org
+  mark-up syntax used to set apart prose, code, and execution output.
+  In the derivative `nldas.txt' version the presentation will be much
+  cleaner but the content becomes static with a table of contents and
+  various ASCII art added for readability.  Certain code blocks and/or
+  their results are excluded from the export when deemed superfluous or
+  excessively verbose.
+
+  Many of the scripts in the `scripts/' directory are also derived from
+  the `nldas.org' file.  Through the process of "tangling" the source
+  code blocks are "tangled", or exported, to the `tangle/' directory.
+  There is logic indicated by the "tangle" target in the the `Makefile'.
+  The Git hook in `git-hooks/pre-commit' will perform this action
+  automatically once activated in your clone as described [here].  The
+  purpose of this automation is to keep the tangled code in `scripts/'
+  in sync with the dynamic content of `nldas.org' because both the
+  parent document and the derived children are tracked in the Git
+  repository.  This behavior can be overridden with `git --no-verify'
+  but this usage is discouraged.  The purpose of the `tangle/' directory
+  and the `rsync' to the `scripts/' directory is to ensure that only
+  files that change in `tangle/' are rewritten in `scripts/' and
+  subsequently commited to the Git repository.
+
+  The `Makefile' included with this project is not incorporated into
+  this document due to the recursive dependencies such a relationship
+  would create.  It is intended to serve as a roadmap of the workflow
+  for the reader who is tracing the logic of the process.  It is
+  possible to execute significant portions of the workflow using `make'
+  but this capability has not been tested and should be used with care,
+  preferably in a sandbox clone rather than in the master project
+  directory on Midway.  For example, the shebang ("#!") strings of the R
+  scripts have not been exercised and may preclude automation under
+  `make' for the time being but the primary purpose is to illuminate the
+  dependencies among the various scripts and outputs.  However, the
+  `Makefile' is useful for updating the derived scripts after making
+  edits in source code blocks within `nldas.org'.
+
+
+  [here]
+  http://codeinthehole.com/writing/tips-for-using-a-git-pre-commit-hook/
+
+
+Download the hourly data: `scripts/nldasDownload.{R,sbatch}'
+════════════════════════════════════════════════════════════
+
+Initialize the R session
+────────────────────────
+
+  ╭────
+  │ library( XML)
+  │ library( stringr)
+  │ 
+  │ baseUrl <- "ftp://hydro1.sci.gsfc.nasa.gov/data/s4pa/NLDAS/NLDAS_FORA0125_H.002"
+  ╰────
+
+  The base of the NLDAS downloads is `src_R[ :exports results]{
+  baseUrl}'.
+
+
+TODO Make the shebang dynamic, perhaps with `call-process' in elisp.
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+  For now shebang will have to be edited for different systems.
+  `/usr/bin/R' will be fine in many cases, but not on Midway.
+
+
+Compute the dates of the missing data
+─────────────────────────────────────
+
+  The NLDAS archive begins at [1979-01-01 13:00].  Our experience is
+  that the most recent data available is four days before the present.
+  When starting with no data one should use the following date sequence
+  to specify the complete collection:
+
+  In order to start a new NLDAS collection or perform an update outside
+  of Emacs Org-mode you must edit the `#+HEADER: :var' parameters of the
+  following code block or the corresponding assignment statements in the
+  tangled & `rsync''d script in `scripts/nldasDownload.R'.
+
+  ╭────
+  │ nldasDates <-
+  │   seq(
+  │     from= ISOdate(
+  │       year=  fromYear,
+  │       month= fromMonth,
+  │       day=   fromDay,
+  │       hour=  fromHour),
+  │     to= as.POSIXlt( Sys.Date() - 4),
+  │     by= "hour")
+  ╰────
+
+
+
+  Using the default arguments will populate the data as follows:
+
+
+  ╭────
+  │ head( nldasDates)
+  ╰────
+
+  ━━━━━━━━━━━━━━━━━━━━━
+   1979-01-01 13:00:00 
+   1979-01-01 14:00:00 
+   1979-01-01 15:00:00 
+   1979-01-01 16:00:00 
+   1979-01-01 17:00:00 
+   1979-01-01 18:00:00 
+  ━━━━━━━━━━━━━━━━━━━━━
+
+  ╭────
+  │ tail( nldasDates)
+  ╰────
+
+  ━━━━━━━━━━━━━━━━━━━━━
+   2013-08-31 19:00:00 
+   2013-08-31 20:00:00 
+   2013-08-31 21:00:00 
+   2013-08-31 22:00:00 
+   2013-08-31 23:00:00 
+   2013-09-01 00:00:00 
+  ━━━━━━━━━━━━━━━━━━━━━
+
+  When updating an existing collection one should specify the download
+  date sequence as follows:
+
+  Simply adjust the arguments in the above `#+CALL:' and press `C-c C-c'
+  if using Emacs Org-mode.  Otherwise edit the script in
+  `scripts/nldasDownload.R'.
+
+  ╭────
+  │ head(nldasDates)
+  ╰────
+  ━━━━━━━━━━━━━━━━━━━━━
+   2013-09-21 01:00:00 
+   2013-09-21 02:00:00 
+   2013-09-21 03:00:00 
+   2013-09-21 04:00:00 
+   2013-09-21 05:00:00 
+   2013-09-21 06:00:00 
+  ━━━━━━━━━━━━━━━━━━━━━
+
+  ╭────
+  │ nldasDataUrls <-
+  │   paste(
+  │     baseUrl,
+  │     format( nldasDates, "%Y/%j/NLDAS_FORA0125_H.A%Y%m%d.%H00.002.grb*"),
+  │     ## format( nldasDates, "%Y/%j"),
+  │     ## "*.grb*",
+  │     sep= "/")
+  ╰────
+
+  [file:data/nldasDataUrls]
+
+  When evaluated within the `nldas.org' environment the previous block
+  takes care of emitting its results to a file, but to run from the
+  tangled code we need another small block.  The `Makefile' directs the
+  ouput to the appropriate file.
+
+  ╭────
+  │ cat( nldasDataUrls, sep= "\n")
+  ╰────
+
+
+Work out checksum verification using first URL
+══════════════════════════════════════════════
+
+  ╭────
+  │ head( nldasDataUrls, 1)
+  ╰────
+
+  ╭────
+  │ wget \
+  │     --no-host-directories \
+  │     --cut-dirs=3 \
+  │     --directory-prefix=data \
+  │     --recursive \
+  │     --quiet \
+  │     --retry-connrefused \
+  │     --timestamping \
+  │     ${url}
+  ╰────
+
+  Remember `--progress=dot:mega' in place of `--no-verbose'.
+
+
+  ╭────
+  │ find data/$(echo -n ${url} | cut -d/ -f7-9) \
+  │     -name $(echo -n ${url} | cut -d/ -f10)
+  ╰────
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   data/NLDAS_FORA0125_H.002/2013/186/NLDAS_FORA0125_H.A20130705.0000.002.grb     
+   data/NLDAS_FORA0125_H.002/2013/186/NLDAS_FORA0125_H.A20130705.0000.002.grb.xml 
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+Download using GNU Parallel
+═══════════════════════════
+
+  ╭────
+  │ parallel \
+  │     --jobs 4 \
+  │     -I '${url}' \
+  │     --retries 10 \
+  │     --keep-order \
+  │     'wget \
+  │     '    --no-host-directories \
+  │     '    --cut-dirs=3 \
+  │     '    --directory-prefix=data \
+  │     '    --recursive \
+  │     '    --quiet \
+  │     '    --retry-connrefused \
+  │     '    --timestamping \
+  │     '    ${url}; \
+  │     find data/$(echo -n ${url} | cut -d/ -f7-9) \
+  │ 	-name $(echo -n ${url} | cut -d/ -f10) ' \
+  │     ::: $(tail -n 4 data/nldasDataUrls) \
+  │     > data/parallelOutput
+  ╰────
+
+  To read the entire file the `:::' argument above must be replaced by
+  `::::' (four colons) and a bare file name.
+
+
+  Incorporate the checksum verification
+
+  ╭────
+  │ parallel \
+  │     --joblog log/parallel.log \
+  │     --resume \
+  │     --jobs 4 \
+  │     -I '${url}' \
+  │     --keep-order \
+  │     --retries 10 \
+  │     'wget \
+  │     '    --no-host-directories \
+  │     '    --cut-dirs=3 \
+  │     '    --directory-prefix=data \
+  │     '    --recursive \
+  │     '    --quiet \
+  │     '    --retry-connrefused \
+  │     '    --timestamping \
+  │     '    ${url};
+  │     find data/$(echo -n ${url} | cut -d/ -f7-9) \
+  │ 	-name $(echo -n ${url} | cut -d/ -f10)  | 
+  │     tee data/parallelOutput |
+  │     xargs scripts/nldasGrbChecksum.r' \
+  │     :::: data/nldasDataUrls
+  ╰────
+
+  This fragment can be switched into the above code block for quicker
+  testing.
+
+  ╭────
+  │ ::: $(tail -n 4 data/nldasDataUrls)
+  ╰────
+
+
+TODO Download using GNU Parallel and SLURM
+══════════════════════════════════════════
+
+  ╭────
+  │ module load parallel
+  │ parallel \
+  │     --jobs $SLURM_NTASKS \
+  │     -I '${url}' \
+  │     --keep-order \
+  │     --retries 10 \
+  │     'srun --exclusive -N1 -n1 \
+  │       wget \
+  │ 	  --no-host-directories \
+  │ 	  --cut-dirs=3 \
+  │ 	  --directory-prefix=data \
+  │ 	  --recursive \
+  │ 	  --quiet \
+  │ 	  --retry-connrefused \
+  │ 	  --timestamping \
+  │ 	  ${url};
+  │     find data/$(echo -n ${url} | cut -d/ -f7-9) \
+  │ 	-name $(echo -n ${url} | cut -d/ -f10)  | 
+  │     tee data/parallelOutput |
+  │     xargs scripts/nldasGrbChecksum.r' \
+  │     :::: data/nldasDataUrls
+  ╰────
+
+  ╭────
+  │ sbatch \
+  │     --ntasks=32 \
+  │     --exclusive \
+  │     scripts/parallelWget.sh
+  ╰────
+
+  ╭────
+  │ 
+  │ > > Submitted batch job 6973182
+  ╰────
+
+  It works better now but still experienced some failures and could not
+  always log in to the first node.  I am assuming that the latter was a
+  SLURM hiccup, so this should be tested again.  It seems like all of
+  the tasks may have been running on the first node.
+
+
+Convert GRB metadata to CDO parameter table
+═══════════════════════════════════════════
+
+  ╭────
+  │ ~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+  │     | perl -lpe 's/ \[/:/; s/[\]\"]//g' \
+  │     | cut -d: -f4,5,6,9,10
+  ╰────
+
+  ╭────
+  │ TMP:2 m above gnd:kpds=11,105,2:Temp.:K
+  │ SPFH:2 m above gnd:kpds=51,105,2:Specific humidity:kg/kg
+  │ PRES:sfc:kpds=1,1,0:Pressure:Pa
+  │ UGRD:10 m above gnd:kpds=33,105,10:u wind:m/s
+  │ VGRD:10 m above gnd:kpds=34,105,10:v wind:m/s
+  │ DLWRF:sfc:kpds=205,1,0:Downward longwave radiation flux:W/m^2
+  │ var153:sfc:kpds=153,1,0:undefined
+  │ CAPE:180-0 mb above gnd:kpds=157,116,46080:Convective available potential energy:J/Kg
+  │ PEVAP:sfc:kpds=228,1,0:Potential evaporation:Kg/m^2
+  │ APCP:sfc:kpds=61,1,0:Total precipitation:kg/m^2
+  │ DSWRF:sfc:kpds=204,1,0:Downward shortwave radiation flux:W/m^2
+  ╰────
+
+  ╭────
+  │ echo '|-' 
+  │ echo '|variable|height|codes|description|units|'
+  │ echo '|-' 
+  │ ~/src/wgrib/wgrib -v data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+  │     | perl -lpe 's/ \[/:/; s/[\]\"]//g' \
+  │     | cut -d: -f4,5,6,9,10 \
+  │     | perl -lne 's/:/\|/g; print "|$_|"'
+  │ echo '|-'
+  ╰────
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   variable  height              codes               description                            units  
+  ─────────────────────────────────────────────────────────────────────────────────────────────────
+   TMP       2 m above gnd       kpds=11,105,2       Temp.                                  K      
+   SPFH      2 m above gnd       kpds=51,105,2       Specific humidity                      kg/kg  
+   PRES      sfc                 kpds=1,1,0          Pressure                               Pa     
+   UGRD      10 m above gnd      kpds=33,105,10      u wind                                 m/s    
+   VGRD      10 m above gnd      kpds=34,105,10      v wind                                 m/s    
+   DLWRF     sfc                 kpds=205,1,0        Downward longwave radiation flux       W/m_2  
+   var153    sfc                 kpds=153,1,0        undefined                                     
+   CAPE      180-0 mb above gnd  kpds=157,116,46080  Convective available potential energy  J/Kg   
+   PEVAP     sfc                 kpds=228,1,0        Potential evaporation                  Kg/m_2 
+   APCP      sfc                 kpds=61,1,0         Total precipitation                    kg/m_2 
+   DSWRF     sfc                 kpds=204,1,0        Downward shortwave radiation flux      W/m_2  
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  These correspond to the values we must give to CDO in a 'parameter
+  table'.
+
+  ╭────
+  │ cat data/cdoPartab
+  ╰────
+
+  ╭────
+  │ 11	TMP	air temperature at 2m [K]
+  │ 51	SPFH	specific humidity [kg/kg]
+  │ 1	PRES	pressure [Pa]
+  │ 33	UGRD	u wind [m/s]
+  │ 34	VGRD	v wind [m/s]
+  │ 205	DLWRF	downward longwave radiation flux [W/m^2]
+  │ 153	var153	undefined
+  │ 157	CAPE	convective available potential energy [J/kg]
+  │ 228	PEVAP	potential evaporation [kg/m^2]
+  │ 61	APCP	accumulated precipitation [mm]
+  │ 204	DSWRF	downward shortwave radiation [W/m^2]
+  ╰────
+
+
+Create a mask from the first day's data
+═══════════════════════════════════════
+
+  ╭────
+  │ mkdir data/output
+  ╰────
+
+  ╭────
+  │ gdalwarp -overwrite \
+  │     -t_srs EPSG:4326 \
+  │     -te -180 -90 180 90 \
+  │     -tr 0.08333333 0.08333333 \
+  │     -srcnodata 9999 \
+  │     -dstnodata 9999 \
+  │     data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+  │     data/output/nldasMask5minRaw.tif
+  ╰────
+
+  ╭────
+  │ 
+  │ > > > > > > Creating output file that is 4320P x 2160L.
+  │ Processing input file data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb.
+  │ 0...10...20...30...40...50...60...70...80...90...100 - done.
+  ╰────
+
+  ╭────
+  │ gdalinfo data/output/nldasMask5minRaw.tif
+  ╰────
+
+  ╭────
+  │ Driver: GTiff/GeoTIFF
+  │ Files: data/output/nldasMask5minRaw.tif
+  │ Size is 4320, 2160
+  │ Coordinate System is:
+  │ GEOGCS["WGS 84",
+  │     DATUM["WGS_1984",
+  │         SPHEROID["WGS 84",6378137,298.257223563,
+  │             AUTHORITY["EPSG","7030"]],
+  │         AUTHORITY["EPSG","6326"]],
+  │     PRIMEM["Greenwich",0],
+  │     UNIT["degree",0.0174532925199433],
+  │     AUTHORITY["EPSG","4326"]]
+  │ Origin = (-180.000000000000000,90.000000000000000)
+  │ Pixel Size = (0.083333330000000,-0.083333330000000)
+  │ Metadata:
+  │   AREA_OR_POINT=Area
+  │ Image Structure Metadata:
+  │   INTERLEAVE=PIXEL
+  │ Corner Coordinates:
+  │ Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+  │ Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+  │ Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+  │ Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+  │ Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+  │ Band 1 Block=4320x1 Type=Float64, ColorInterp=Gray
+  │   NoData Value=9999
+  │ Band 2 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 3 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 4 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 5 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 6 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 7 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 8 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 9 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 10 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 11 Block=4320x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  ╰────
+
+  ╭────
+  │ gdal_translate -ot Byte -b 1 \
+  │     -a_nodata 255 \
+  │     -scale \
+  │     data/output/nldasMask5minRaw.tif \
+  │     data/output/nldasMask5minByte.tif
+  ╰────
+
+  ╭────
+  │ 
+  │ > > > Input file size is 4320, 2160
+  │ 0...10...20...30...40...50...60...70...80...90...100 - done.
+  ╰────
+
+  ╭────
+  │ gdalinfo data/output/nldasMask5minByte.tif
+  ╰────
+
+  ╭────
+  │ Driver: GTiff/GeoTIFF
+  │ Files: data/output/nldasMask5minByte.tif
+  │ Size is 4320, 2160
+  │ Coordinate System is:
+  │ GEOGCS["WGS 84",
+  │     DATUM["WGS_1984",
+  │         SPHEROID["WGS 84",6378137,298.257223563,
+  │             AUTHORITY["EPSG","7030"]],
+  │         AUTHORITY["EPSG","6326"]],
+  │     PRIMEM["Greenwich",0],
+  │     UNIT["degree",0.0174532925199433],
+  │     AUTHORITY["EPSG","4326"]]
+  │ Origin = (-180.000000000000000,90.000000000000000)
+  │ Pixel Size = (0.083333330000000,-0.083333330000000)
+  │ Metadata:
+  │   AREA_OR_POINT=Area
+  │ Image Structure Metadata:
+  │   INTERLEAVE=BAND
+  │ Corner Coordinates:
+  │ Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+  │ Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+  │ Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+  │ Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+  │ Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+  │ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
+  │   NoData Value=255
+  ╰────
+
+
+Convert byte values to a binary mask
+════════════════════════════════════
+
+Scaling with gdal_translate doesn't work
+────────────────────────────────────────
+
+  ╭────
+  │ gdal_translate \
+  │     -scale 0 254 1 1 \
+  │     data/output/nldasMask5minByte.tif \
+  │     data/output/nldasMask5min.tif
+  ╰────
+
+  ╭────
+  │ Input file size is 4320, 2160
+  │ 0...10...20...30...40...50...60...70...80...90...100 - done.
+  ╰────
+
+
+Use R!
+──────
+
+  ╭────
+  │ library( raster)
+  │ 
+  │ nldasMask5minByte <- setMinMax(
+  │   raster( "data/output/nldasMask5minByte.tif"))
+  │ 
+  │ nldasMask5min <-
+  │   raster( nldasMask5minByte)
+  │ NAvalue( nldasMask5min) <- 255
+  │ 
+  │ nldasMask5min[] <-
+  │   ifelse( !is.na( nldasMask5minByte[]), 1, NA)
+  │ 
+  │ nldasMask5min <- writeRaster(
+  │   nldasMask5min,
+  │   filename= "data/output/nldasMask5min.tif",
+  │   overwrite= TRUE,
+  │   datatype= "LOG1S")
+  ╰────
+
+  ╭────
+  │ gdalinfo data/output/nldasMask5min.tif
+  ╰────
+
+  ╭────
+  │ Driver: GTiff/GeoTIFF
+  │ Files: data/output/nldasMask5min.tif
+  │ Size is 4320, 2160
+  │ Coordinate System is:
+  │ GEOGCS["WGS 84",
+  │     DATUM["WGS_1984",
+  │         SPHEROID["WGS 84",6378137,298.257223563,
+  │             AUTHORITY["EPSG","7030"]],
+  │         AUTHORITY["EPSG","6326"]],
+  │     PRIMEM["Greenwich",0],
+  │     UNIT["degree",0.0174532925199433],
+  │     AUTHORITY["EPSG","4326"]]
+  │ Origin = (-180.000000000000000,90.000000000000000)
+  │ Pixel Size = (0.083333330000000,-0.083333330000000)
+  │ Metadata:
+  │   AREA_OR_POINT=Area
+  │ Image Structure Metadata:
+  │   COMPRESSION=LZW
+  │   INTERLEAVE=BAND
+  │ Corner Coordinates:
+  │ Upper Left  (-180.0000000,  90.0000000) (180d 0' 0.00"W, 90d 0' 0.00"N)
+  │ Lower Left  (-180.0000000, -89.9999928) (180d 0' 0.00"W, 89d59'59.97"S)
+  │ Upper Right ( 179.9999856,  90.0000000) (179d59'59.95"E, 90d 0' 0.00"N)
+  │ Lower Right ( 179.9999856, -89.9999928) (179d59'59.95"E, 89d59'59.97"S)
+  │ Center      (  -0.0000072,   0.0000036) (  0d 0' 0.03"W,  0d 0' 0.01"N)
+  │ Band 1 Block=4320x1 Type=Byte, ColorInterp=Gray
+  │   Min=1.000 Max=1.000 
+  │   Minimum=1.000, Maximum=1.000, Mean=1.000, StdDev=0.000
+  │   NoData Value=255
+  │   Metadata:
+  │     STATISTICS_MAXIMUM=1
+  │     STATISTICS_MEAN=1
+  │     STATISTICS_MINIMUM=1
+  │     STATISTICS_STDDEV=0
+  ╰────
+
+
+Write out grid cells
+════════════════════
+
+  ╭────
+  │ nldasCells5min <- which( as.logical( nldasMask5min[]))
+  │ 
+  │ cat(
+  │   nldasCells5min,
+  │   file= "data/output/nldasCells5min.txt",
+  │   sep= "\n")
+  ╰────
+
+
+  ╭────
+  │ head data/output/nldasCells5min.txt
+  ╰────
+
+  ╭────
+  │ 1918741
+  │ 1918742
+  │ 1918743
+  │ 1918744
+  │ 1918745
+  │ 1918746
+  │ 1918747
+  │ 1918748
+  │ 1918749
+  │ 1918750
+  ╰────
+
+
+Get the bounding box and write CDO grid description
+═══════════════════════════════════════════════════
+
+  CDO needs a "grid description" file to perform the resampling of the
+  native-resolution data to our $5'$ grid.  Along the way a raster mask
+  indicating where data is available from the NLDAS dataset is produced.
+  This is used later in `scripts/writePsims.r' (see function
+  `writePsimsNc()') to determine which directories corresponding to grid
+  cells in the row/column pSIMS data file tree are to be created and
+  populated.
+
+
+  ╭────
+  │ library( raster)
+  │ nldasMask5min <- raster( "data/output/nldasMask5min.tif")
+  │ nldasRegion <- trim( nldasMask5min, filename= "data/output/nldasRegion.tif")
+  ╰────
+
+  ╭────
+  │ gdalwarp -overwrite \
+  │     -t_srs EPSG:4326 \
+  │     -tr 0.08333333 0.08333333 \
+  │     -srcnodata 9999 \
+  │     -dstnodata 9999 \
+  │     # data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb \
+  │     $( find data/NLDAS_FORA0125_H.002 -type f -name "*.grb" | head -n 1) \
+  │     data/output/nldasRegionRaw.tif
+  ╰────
+
+  ╭────
+  │ 
+  │ > > > > > Creating output file that is 696P x 336L.
+  │ Processing input file data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb.
+  │ 0...10...20...30...40...50...60...70...80...90...100 - done.
+  ╰────
+
+
+  ╭────
+  │ gdalinfo data/output/nldasRegionRaw.tif
+  ╰────
+
+  ╭────
+  │ Driver: GTiff/GeoTIFF
+  │ Files: data/output/nldasRegionRaw.tif
+  │ Size is 696, 336
+  │ Coordinate System is:
+  │ GEOGCS["WGS 84",
+  │     DATUM["WGS_1984",
+  │         SPHEROID["WGS 84",6378137,298.257223563,
+  │             AUTHORITY["EPSG","7030"]],
+  │         AUTHORITY["EPSG","6326"]],
+  │     PRIMEM["Greenwich",0],
+  │     UNIT["degree",0.0174532925199433],
+  │     AUTHORITY["EPSG","4326"]]
+  │ Origin = (-125.000500000000002,53.000500000000002)
+  │ Pixel Size = (0.083333330000000,-0.083333330000000)
+  │ Metadata:
+  │   AREA_OR_POINT=Area
+  │ Image Structure Metadata:
+  │   INTERLEAVE=PIXEL
+  │ Corner Coordinates:
+  │ Upper Left  (-125.0005000,  53.0005000) (125d 0' 1.80"W, 53d 0' 1.80"N)
+  │ Lower Left  (-125.0005000,  25.0005011) (125d 0' 1.80"W, 25d 0' 1.80"N)
+  │ Upper Right ( -67.0005023,  53.0005000) ( 67d 0' 1.81"W, 53d 0' 1.80"N)
+  │ Lower Right ( -67.0005023,  25.0005011) ( 67d 0' 1.81"W, 25d 0' 1.80"N)
+  │ Center      ( -96.0005012,  39.0005006) ( 96d 0' 1.80"W, 39d 0' 1.80"N)
+  │ Band 1 Block=696x1 Type=Float64, ColorInterp=Gray
+  │   NoData Value=9999
+  │ Band 2 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 3 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 4 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 5 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 6 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 7 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 8 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 9 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 10 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  │ Band 11 Block=696x1 Type=Float64, ColorInterp=Undefined
+  │   NoData Value=9999
+  ╰────
+
+
+  ╭────
+  │ gdal_translate -ot Byte -b 1 \
+  │     -a_nodata 255 \
+  │     -scale \
+  │     data/output/nldasRegionRaw.tif \
+  │     data/output/nldasRegionByte.tif
+  ╰────
+
+  ╭────
+  │ 
+  │ > > > Input file size is 696, 336
+  │ 0...10...20...30...40...50...60...70...80...90...100 - done.
+  ╰────
+
+  This byte file serves as a boolean mask from which a grid cell ID or
+  row/col list can be generated.  It seems that it is not explicitly
+  used elsewhere for now.
+
+  ╭────
+  │ griddesFormat <- 
+  │   "gridtype = lonlat
+  │ xsize    = %d
+  │ ysize    = %d
+  │ xfirst   = %13.8f
+  │ xinc     = %13.8f
+  │ yfirst   = %13.8f
+  │ yinc     = %13.8f\n"
+  │ 
+  │ griddes <- 
+  │   sprintf(
+  │     griddesFormat,
+  │     ncol( nldasRegion),
+  │     nrow( nldasRegion),
+  │     xmin( nldasRegion),
+  │     res( nldasRegion)[1],
+  │     ymin( nldasRegion),
+  │     res( nldasRegion)[2])
+  │ 
+  │ cat( griddes, file= "data/output/nldas_5min.grid")
+  ╰────
+
+  ╭────
+  │ cat( griddes)
+  ╰────
+
+  ╭────
+  │ 
+  │ gridtype = lonlat
+  │ xsize    = 696
+  │ ysize    = 336
+  │ xfirst   = -125.00000220
+  │ xinc     =    0.08333333
+  │ yfirst   =   25.00000260
+  │ yinc     =    0.08333333
+  ╰────
+
+
+Write makeflow file using Whisker templates
+═══════════════════════════════════════════
+
+  In order to start a new NLDAS collection or perform an update outside
+  of Emacs Org-mode you must edit the `#+HEADER: :var' parameters of the
+  following code block or the corresponding assignment statements in the
+  tangled & `rsync''d script in `scripts/writeMakeflow.R'.
+
+  ╭────
+  │ library( whisker)
+  │ library( plyr)
+  │ library( doMC)
+  │ registerDoMC(4)
+  │ 
+  │ nldasHours <- seq(
+  │   from= ISOdatetime(
+  │     year=  fromYear,
+  │     month= fromMonth,
+  │     day=   fromDay,
+  │     hour=  fromHour,
+  │     min=      0,
+  │     sec=      0,
+  │     tz=   "GMT"),
+  │   ## to= as.POSIXct( Sys.Date() - 4 -1/24),
+  │   to= strptime( sprintf( "%s23", lastFullDay), format= "%Y%j%H", tz="GMT"),
+  │   by= "hour")
+  │ 
+  │ nldasDates <- seq(
+  │   from= as.Date( nldasHours[ 1]),
+  │   ## to=   as.Date( nldasHours[ length( nldasHours)]),
+  │   to= as.Date( lastFullDay, format= "%Y%j"),
+  │   by= "day")
+  ╰────
+
+  Use the above like so to avoid processing data that is already
+  aggregated.
+
+  ╭────
+  │ {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc: {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{cdoGrid}}
+  │ cdo -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc
+  ╰────
+
+
+TODO report Org/R/noweb bug in pseudo-heredoc
+─────────────────────────────────────────────
+
+  ╭────
+  │ template <- "
+  │ 
+  │ {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc: {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{cdoGrid}}
+  │ cdo -f nc {{cdoRemapArgs}} {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb {{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.nc"
+  ╰────
+
+
+instead define snarf()
+──────────────────────
+
+  ╭────
+  │ snarf <- function( fn) {
+  │   readChar( fn, file.info( fn)$size)
+  │ }
+  ╰────
+
+  ╭────
+  │ template <- snarf( "tangle/hourlyTemplate.mustache")
+  ╰────
+
+
+Need an abstraction on top of whisker
+─────────────────────────────────────
+
+  ╭────
+  │ getHourlyWhiskerData <- function( POSIXct, ...) {
+  │   list(
+  │     Yj= format( POSIXct, "%Y/%j"),
+  │     Ymd= format( POSIXct, "%Y%m%d"),
+  │     H= format( POSIXct, "%H"),
+  │     ...)
+  │ }
+  │ 
+  │ renderHourlyWhiskerData <- function( POSIXct, template, partials, ...) {
+  │   data <- getHourlyWhiskerData( POSIXct, ...)
+  │   whisker.render(
+  │     template,
+  │     data= data,
+  │     partials= partials)
+  │ }  
+  │ 
+  │ dumpWhiskerOutput <- function(
+  │   ...,
+  │   renderFunction= renderHourlyWhiskerData,
+  │   file= "")
+  │ {
+  │   cat(
+  │     renderFunction( ...),
+  │     file= file,
+  │     append= TRUE)
+  │ }
+  ╰────
+
+
+Daily aggregates
+════════════════
+
+Create daily merge files
+────────────────────────
+
+  ╭────
+  │ dailyMergeFileTemplate <-
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.merge.nc"
+  │ 
+  │ hourlyGrbFileTemplate <-
+  │   "$projectDir/{{dataDir}}/{{Yj}}/NLDAS_FORA0125_H.A{{Ymd}}.{{H}}00.002.grb"
+  │ 
+  │ ## dailyMergeRuleTemplate <- paste(
+  │ ##   "{{> dailyMergeFile}}: {{#hours}}{{> hourlyGrbFiles}} {{/hours}}",
+  │ ##   "cdo -t data/cdoPartab mergetime {{#hours}}{{> hourlyGrbFiles}} {{/hours}}{{> dailyMergeFile}}",
+  │ ##   "\n",
+  │ ##   sep= "\n\n")
+  │ 
+  │ dailyMergeRuleTemplate <- c(
+  │   "\n{{> dailyMergeFile}}: {{#hours}}{{> hourlyGrbFiles}} {{/hours}}\n",
+  │   "\ncdo -O -f nc -t $projectDir/data/cdoPartab mergetime {{#hours}}{{> hourlyGrbFiles}} {{/hours}}{{> dailyMergeFile}}\n")
+  │ 
+  │ ## makeflowRecipe <-
+  │ ##   whisker.render(
+  │ ##     template= dailyMergeRuleTemplate,
+  │ ##     data= list(
+  │ ##       hours= unname(
+  │ ##         rowSplit(
+  │ ##           data.frame(
+  │ ##             getHourlyWhiskerData(
+  │ ##               head( nldasHours, n=24))))),
+  │ ##       dataDir= "data/NLDAS_FORA0125_H.002",
+  │ ##       dailyYj= "1979/001",
+  │ ##       dailyYmd= "19790101"),    
+  │ ##     partials= list(
+  │ ##       hourlyGrbFiles= hourlyGrbFileTemplate,
+  │ ##       dailyMergeFile= dailyMergeFileTemplate))
+  │ 
+  │ getDailyWhiskerData <- function( POSIXct, ...) {
+  │   nldasDate <- unique( as.Date( POSIXct))
+  │   list(
+  │     dailyYj= format( nldasDate, "%Y/%j"),
+  │     dailyYmd= format( nldasDate, "%Y%m%d"),
+  │     hours= unname(
+  │       rowSplit(
+  │ 	data.frame(
+  │ 	  getHourlyWhiskerData( POSIXct)))),
+  │     ...)
+  │ }
+  │ 
+  │ ## renderDailyWhiskerData <- function( POSIXct, template, partials, ...) {
+  │ ##   data <- list(
+  │ ##     unlist( getDailyWhiskerData( unique( as.Date( POSIXct)))),
+  │ ##     hours= unname(
+  │ ##       rowSplit(
+  │ ##         data.frame(
+  │ ##           getHourlyWhiskerData( POSIXct)))),
+  │ ##     ...)
+  │ ##   whisker.render(
+  │ ##     template,
+  │ ##     data= data,
+  │ ##     partials= partials)
+  │ ## }
+  │ 
+  │ renderDailyWhiskerData <- function( POSIXct, template, partials, ...) {
+  │   data <- getDailyWhiskerData( POSIXct[,1], ...)
+  │   whisker.render(
+  │     template,
+  │     data= data,
+  │     partials= partials)
+  │ }
+  │ 
+  │ ## renderDailyWhiskerData(
+  │ ##   data.frame( head( nldasHours)),
+  │ ##   dailyMergeRuleTemplate,
+  │ ##   partials= list(
+  │ ##     hourlyGrbFiles= hourlyGrbFileTemplate,
+  │ ##     dailyMergeFile= dailyMergeFileTemplate),
+  │ ##   dataDir= "data/NLDAS_FORA0125_H.002")
+  │ 
+  │ 
+  │ ## dailyRules <- daply(
+  │ ##   .data= head( data.frame( POSIXct= nldasHours), n=35),
+  │ ##   .variables= .( as.Date( POSIXct)),
+  │ ##   .fun= renderDailyWhiskerData,
+  │ ##   template= dailyMergeRuleTemplate,
+  │ ##   partials= list(
+  │ ##     hourlyGrbFiles= hourlyGrbFileTemplate,
+  │ ##     dailyMergeFile= dailyMergeFileTemplate),
+  │ ##   dataDir= "data/NLDAS_FORA0125_H.002")
+  ╰────
+
+  ╭────
+  │ d_ply(
+  │   .data= head( data.frame( POSIXct= nldasHours), n=35),
+  │   .variables= .( as.Date( POSIXct)),
+  │   .fun= dumpWhiskerOutput,
+  │   renderFunction= renderDailyWhiskerData,
+  │   template= dailyMergeRuleTemplate,
+  │   partials= list(
+  │     hourlyGrbFiles= hourlyGrbFileTemplate,
+  │     dailyMergeFile= dailyMergeFileTemplate),
+  │   dataDir= "data/NLDAS_FORA0125_H.002")
+  ╰────
+
+  ╭────
+  │  
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb 
+  │ cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb 
+  │ cdo -f nc -t $projectDir/data/cdoPartab mergetime $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.0900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1400.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1500.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1600.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1700.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1800.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.1900.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2000.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2100.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2200.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.2300.002.grb $projectDir/data/NLDAS_FORA0125_H.002/1979/002/NLDAS_FORA0125_H.A19790102.merge.nc
+  ╰────
+
+  ╭────
+  │ file.remove( fn)
+  │ cat(
+  │   "CORES=1",
+  │   "projectDir=/project/joshuaelliott/nldas\n",
+  │   sep= "\n",
+  │   file= fn)
+  ╰────
+
+  ╭────
+  │ d_ply(
+  │   .data= head( data.frame( POSIXct= nldasHours), n=35),
+  │   ## .data= head(
+  │   ##   nldasHours[ nldasHours > as.POSIXlt(
+  │   ##     "1979-01-01 23:00:00",
+  │   ##     tz= "GMT")],
+  │   ##   24),
+  │   .variables= .( as.Date( POSIXct)),
+  │   .fun= dumpWhiskerOutput,
+  │   renderFunction= renderDailyWhiskerData,
+  │   template= dailyMergeRuleTemplate,
+  │   partials= list(
+  │     hourlyGrbFiles= hourlyGrbFileTemplate,
+  │     dailyMergeFile= dailyMergeFileTemplate),
+  │   dataDir= "data/NLDAS_FORA0125_H.002",
+  │   file= "Makeflow.test")
+  ╰────
+
+  ╭────
+  │ d_ply( 
+  │   .data= data.frame( POSIXct= nldasHours),
+  │   .variables= .( as.Date( POSIXct)),
+  │   .fun= dumpWhiskerOutput,
+  │   .parallel= TRUE,
+  │   renderFunction= renderDailyWhiskerData,
+  │   template= dailyMergeRuleTemplate,
+  │   partials= list(
+  │     hourlyGrbFiles= hourlyGrbFileTemplate,
+  │     dailyMergeFile= dailyMergeFileTemplate),
+  │   dataDir= "data/NLDAS_FORA0125_H.002",
+  │   file= "Makeflow")
+  ╰────
+
+
+TODO Decide whether to tangle & snarf or simply declare templates
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+  This one is not used.
+
+  ╭────
+  │ {{dataDir}}/{{Ym}}/NLDAS_FORA0125_H.A{{Ymd}}.merge.nc:  {{dataDir}}/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.nc
+  │ 	$cdoExecutable -f nc mergetime $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1400.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1500.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1600.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1700.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1800.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.1900.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2000.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2100.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2200.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.2300.002.nc $dataDir/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  ╰────
+
+
+Aggregate hourly values into daily variables
+────────────────────────────────────────────
+
+  ╭────
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,tmin -timmin -selname,TMP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,precip -timsum -selname,APCP {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,pres -timavg -selname,PRES {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc
+  │ {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc: {{> dailyMergeFile}}
+  │ cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{> dailyMergeFile}} {{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc
+  ╰────
+
+  ╭────
+  │ dailyAggRuleTemplate <- paste(
+  │   "",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,tmax -timmax -selname,TMP {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmax.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,tmin -timmin -selname,TMP {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.tmin.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,precip -timsum -selname,APCP {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.precip.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.solar.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,pres -timavg -selname,PRES {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.pres.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.spfh.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,u -timavg -selname,UGRD {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.u.nc\n",
+  │   "$projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc: {{> dailyMergeFile}}",
+  │   "cdo setzaxis,surface -setname,v -timavg -selname,VGRD {{> dailyMergeFile}} $projectDir/{{dataDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.v.nc\n",
+  │     sep= "\n")
+  │ 
+  │ renderDailyAggData <- function( nldasDate, template, partials, ...) {
+  │   data <- list(
+  │     dailyYj= format( nldasDate, "%Y/%j"),
+  │     dailyYmd= format( nldasDate, "%Y%m%d"),
+  │     ...)
+  │   whisker.render(
+  │     template,
+  │     data= data,
+  │     partials= partials)
+  │ }
+  ╰────
+
+  ╭────
+  │ cat( renderDailyAggData(
+  │   head( nldasDates, n=1),
+  │   template= dailyAggRuleTemplate,
+  │   partials= list(
+  │     dailyMergeFile= dailyMergeFileTemplate),
+  │   dataDir= "data/NLDAS_FORA0125_H.002"))
+  ╰────
+
+  ╭────
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,tmax -timmax -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmax.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,tmin -timmin -selname,TMP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.tmin.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,precip -timsum -selname,APCP $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.precip.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,solar -timavg -selname,DSWRF $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.solar.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,pres -timavg -selname,PRES $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.pres.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,spfh -timavg -selname,SPFH $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.spfh.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,u -timavg -selname,UGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.u.nc
+  │ 
+  │ $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc: $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc
+  │ cdo setzaxis,surface -setname,v -timavg -selname,VGRD $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.merge.nc $projectDir/data/NLDAS_FORA0125_H.002/1979/001/NLDAS_FORA0125_H.A19790101.v.nc
+  ╰────
+
+  ╭────
+  │ cat(
+  │   laply(
+  │     .data= head( nldasDates, 2),
+  │     .fun= renderDailyAggData,
+  │     template= dailyAggRuleTemplate,
+  │     partials= list(
+  │       dailyMergeFile= dailyMergeFileTemplate),
+  │     dataDir= "data/NLDAS_FORA0125_H.002"),
+  │   file= "Makeflow.test",
+  │   append= TRUE)
+  ╰────
+
+  ╭────
+  │ cat(
+  │   laply(
+  │     .data= nldasDates,
+  │     .fun= renderDailyAggData,
+  │     template= dailyAggRuleTemplate,
+  │     partials= list(
+  │       dailyMergeFile= dailyMergeFileTemplate),
+  │     dataDir= "data/NLDAS_FORA0125_H.002"),
+  │   file= "Makeflow",
+  │   append= TRUE)
+  ╰────
+
+
+DONE cdo setzaxis,surface
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+
+TODO drive daily aggregations with a data structure and a simpler template
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+
+Merge individual variables into annual files
+────────────────────────────────────────────
+
+  ╭────
+  │ psimsVars <- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
+  │ 
+  │ annualTargetTemplate <-
+  │   "{{outputDir}}/{{var}}_nldas_{{year}}_0125.nc4"
+  │ 
+  │ annualSourceTemplate <-
+  │   "{{inputDir}}/{{dailyYj}}/NLDAS_FORA0125_H.A{{dailyYmd}}.{{var}}.nc"
+  │ 
+  │ annualRecipeTemplate <- c(
+  │   "\n{{> annualTarget}}: {{# days}}{{> annualSource}} {{/ days}}\n",
+  │   "\n(find {{inputDir}}/{{year}} -name \"*.{{var}}.nc\" | sort; echo {{> annualTarget}}) | xargs cdo -O -f nc4 -z zip mergetime\n")
+  │ 
+  │ renderAnnualRecipe <- function(
+  │   ## var,  year,
+  │   df,
+  │   template= annualRecipeTemplate,
+  │   partials= list(
+  │     annualTarget= annualTargetTemplate,
+  │     annualSource= annualSourceTemplate),
+  │   days= nldasDates[ format( nldasDates, "%Y") == df$year],
+  │   ...)
+  │ {
+  │   data <- with( df, list(
+  │     var= var,
+  │     year= year,
+  │     days= unname(
+  │       rowSplit(
+  │ 	data.frame(
+  │ 	  var= var,
+  │ 	  dailyYj= format( days, "%Y/%j"),
+  │ 	  dailyYmd= format( days, "%Y%m%d")))),
+  │     inputDir= "$projectDir/data/NLDAS_FORA0125_H.002",
+  │     outputDir= "$projectDir/data/annual"))
+  │   whisker.render(
+  │     template,
+  │     data,
+  │     partials)
+  │ }
+  ╰────
+
+
+TODO Automate the value of `year' argument as a function of `nldasHours' or `nldasDates'.
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+  When performing an update to an existing pSIMS collection the `year'
+  variable should only contain values covered by `nldasHours'.  When
+  writing a new pSIMS collection the commented value should be used.
+  This could be done more intelligently by automating this logic.
+
+
+Merge individual variables into all-time files
+──────────────────────────────────────────────
+
+  ╭────
+  │ psimsVars <- c( "tmax", "tmin", "precip", "solar", "pres", "spfh", "u", "v")
+  │ 
+  │ allTimeTargetTemplate <-
+  │   "{{outputDir}}/{{var}}_nldas_1979-2013_0125.nc4"
+  │ 
+  │ allTimeSourceTemplate <-
+  │   "{{annualDir}}/{{var}}_nldas_{{year}}_0125.nc4"
+  │ 
+  │ allTimeRecipeTemplate <- c(
+  │   "\n{{> allTimeTarget}}: {{# years}}{{> allTimeSource}} {{/ years}}\n",
+  │   "\n(find {{annualDir}} -name \"{{var}}_nldas_????_0125.nc4\" | sort; echo {{> allTimeTarget}}) | xargs cdo -O -f nc4 -z zip mergetime\n")
+  │ 
+  │ renderAllTimeRecipe <- function(
+  │   var,
+  │   template= allTimeRecipeTemplate,
+  │   partials= list(
+  │     allTimeTarget= allTimeTargetTemplate,
+  │     allTimeSource= allTimeSourceTemplate),
+  │   years= 1979:2013,
+  │   ...)
+  │ {
+  │   data <- list(
+  │     var= var,
+  │     years= iteratelist( years, value= "year"),
+  │     annualDir= "$projectDir/data/annual",
+  │     outputDir= "$projectDir/data/full",
+  │     ...)
+  │   whisker.render(
+  │     template,
+  │     data,
+  │     partials)
+  │ }
+  ╰────
+
+  ╭────
+  │ cat( renderAllTimeRecipe( "tmax" ), "\n")
+  ╰────
+
+  ╭────
+  │ 
+  │ $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4: $projectDir/data/annual/tmax_nldas_1979_0125.nc4 $projectDir/data/annual/tmax_nldas_1980_0125.nc4 $projectDir/data/annual/tmax_nldas_1981_0125.nc4 $projectDir/data/annual/tmax_nldas_1982_0125.nc4 $projectDir/data/annual/tmax_nldas_1983_0125.nc4 $projectDir/data/annual/tmax_nldas_1984_0125.nc4 $projectDir/data/annual/tmax_nldas_1985_0125.nc4 $projectDir/data/annual/tmax_nldas_1986_0125.nc4 $projectDir/data/annual/tmax_nldas_1987_0125.nc4 $projectDir/data/annual/tmax_nldas_1988_0125.nc4 $projectDir/data/annual/tmax_nldas_1989_0125.nc4 $projectDir/data/annual/tmax_nldas_1990_0125.nc4 $projectDir/data/annual/tmax_nldas_1991_0125.nc4 $projectDir/data/annual/tmax_nldas_1992_0125.nc4 $projectDir/data/annual/tmax_nldas_1993_0125.nc4 $projectDir/data/annual/tmax_nldas_1994_0125.nc4 $projectDir/data/annual/tmax_nldas_1995_0125.nc4 $projectDir/data/annual/tmax_nldas_1996_0125.nc4 $projectDir/data/annual/tmax_nldas_1997_0125.nc4 $projectDir/data/annual/tmax_nldas_1998_0125.nc4 $projectDir/data/annual/tmax_nldas_1999_0125.nc4 $projectDir/data/annual/tmax_nldas_2000_0125.nc4 $projectDir/data/annual/tmax_nldas_2001_0125.nc4 $projectDir/data/annual/tmax_nldas_2002_0125.nc4 $projectDir/data/annual/tmax_nldas_2003_0125.nc4 $projectDir/data/annual/tmax_nldas_2004_0125.nc4 $projectDir/data/annual/tmax_nldas_2005_0125.nc4 $projectDir/data/annual/tmax_nldas_2006_0125.nc4 $projectDir/data/annual/tmax_nldas_2007_0125.nc4 $projectDir/data/annual/tmax_nldas_2008_0125.nc4 $projectDir/data/annual/tmax_nldas_2009_0125.nc4 $projectDir/data/annual/tmax_nldas_2010_0125.nc4 $projectDir/data/annual/tmax_nldas_2011_0125.nc4 $projectDir/data/annual/tmax_nldas_2012_0125.nc4 $projectDir/data/annual/tmax_nldas_2013_0125.nc4 
+  │ (find $projectDir/data/annual -name "tmax_nldas_????_0125.nc4" | sort; echo $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4) | xargs cdo -O -f nc4 -z zip mergetime
+  ╰────
+
+  ╭────
+  │ cat(
+  │   laply(
+  │     .data= psimsVars,
+  │     .fun= renderAllTimeRecipe,
+  │     years= 1979),
+  │   file= "Makeflow.test",
+  │   append= TRUE)
+  ╰────
+
+  ╭────
+  │ cat(
+  │   laply(
+  │     .data= psimsVars,
+  │     .fun= renderAllTimeRecipe),
+  │   file= "Makeflow",
+  │   append= TRUE)
+  ╰────
+
+
+Remap the final outputs to $5'$
+───────────────────────────────
+
+  ╭────
+  │ remapTargetTemplate <-
+  │   "{{outputDir}}/{{var}}_nldas_1979-2013.nc4"
+  ╰────
+
+
+This works
+╌╌╌╌╌╌╌╌╌╌
+
+  ╭────
+  │ remapRecipeData <- unname(
+  │   rowSplit(
+  │     data.frame(
+  │       var= psimsVars,
+  │       inputDir= "$projectDir/data/annual",
+  │       outputDir= "$projectDir/data/full")))
+  │ 
+  │ ## remapRecipeTemplate <- "
+  │ ## {{# remapRecipeData}}
+  │ ## {{> remapTarget}}: {{> allTimeTarget}}
+  │ ##
+  │ ## cdo remapnn,data/nldas_5min.grid {{> allTimeTarget}} {{> remapTarget}}
+  │ ##
+  │ ## {{/ remapRecipeData}}"
+  │ 
+  │ remapRecipeTemplate <- c(
+  │ "{{# remapRecipeData}}",
+  │ "{{> remapTarget}}: {{> allTimeTarget}}",
+  │ "",
+  │ "\ncdo remapnn,$projectDir/data/nldas_5min.grid {{> allTimeTarget}} {{> remapTarget}}",
+  │ "",
+  │ "{{/ remapRecipeData}}")
+  │ ##remapRecipeTemplate <- paste( remapRecipeTemplate, sep= "\n")
+  │ remapRecipeTemplate <- paste( remapRecipeTemplate, collapse= "\n")
+  │ 
+  │ 
+  │ remapRecipes <-
+  │   whisker.render(
+  │     remapRecipeTemplate,
+  │     partials= list(
+  │       allTimeTarget= allTimeTargetTemplate,
+  │       remapTarget= remapTargetTemplate))
+  ╰────
+
+  ╭────
+  │ cat( remapRecipes)
+  ╰────
+
+  ╭────
+  │ $projectDir/data/full/tmax_nldas_1979-2013.nc4: $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmax_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmax_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/tmin_nldas_1979-2013.nc4: $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/tmin_nldas_1979-2013_0125.nc4 $projectDir/data/full/tmin_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/precip_nldas_1979-2013.nc4: $projectDir/data/full/precip_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/precip_nldas_1979-2013_0125.nc4 $projectDir/data/full/precip_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/solar_nldas_1979-2013.nc4: $projectDir/data/full/solar_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/solar_nldas_1979-2013_0125.nc4 $projectDir/data/full/solar_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/pres_nldas_1979-2013.nc4: $projectDir/data/full/pres_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/pres_nldas_1979-2013_0125.nc4 $projectDir/data/full/pres_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/spfh_nldas_1979-2013.nc4: $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/spfh_nldas_1979-2013_0125.nc4 $projectDir/data/full/spfh_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/u_nldas_1979-2013.nc4: $projectDir/data/full/u_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/u_nldas_1979-2013_0125.nc4 $projectDir/data/full/u_nldas_1979-2013.nc4
+  │ 
+  │ $projectDir/data/full/v_nldas_1979-2013.nc4: $projectDir/data/full/v_nldas_1979-2013_0125.nc4
+  │ cdo remapnn,$projectDir/data/nldas_5min.grid $projectDir/data/full/v_nldas_1979-2013_0125.nc4 $projectDir/data/full/v_nldas_1979-2013.nc4
+  ╰────
+
+  ╭────
+  │ cat( "\n", remapRecipes, file= "Makeflow", append= TRUE)
+  ╰────
+
+  ╭────
+  │ cat( "\n", remapRecipes, file= "Makeflow.test", append= TRUE)
+  ╰────
+
+
+Set up a small test
+═══════════════════
+
+  First two days of data.
+
+
+Refresh the test Makeflow
+─────────────────────────
+
+  ╭────
+  │ d_ply(
+  │   .data= head( data.frame( POSIXct= nldasHours), n=35),
+  │   ## .data= head(
+  │   ##   nldasHours[ nldasHours > as.POSIXlt(
+  │   ##     "1979-01-01 23:00:00",
+  │   ##     tz= "GMT")],
+  │   ##   24),
+  │   .variables= .( as.Date( POSIXct)),
+  │   .fun= dumpWhiskerOutput,
+  │   renderFunction= renderDailyWhiskerData,
+  │   template= dailyMergeRuleTemplate,
+  │   partials= list(
+  │     hourlyGrbFiles= hourlyGrbFileTemplate,
+  │     dailyMergeFile= dailyMergeFileTemplate),
+  │   dataDir= "data/NLDAS_FORA0125_H.002",
+  │   file= "Makeflow.test")
+  │ cat(
+  │   laply(
+  │     .data= head( nldasDates, 2),
+  │     .fun= renderDailyAggData,
+  │     template= dailyAggRuleTemplate,
+  │     partials= list(
+  │       dailyMergeFile= dailyMergeFileTemplate),
+  │     dataDir= "data/NLDAS_FORA0125_H.002"),
+  │   file= "Makeflow.test",
+  │   append= TRUE)
+  │ cat(
+  │   unlist(
+  │     dlply(
+  │       .data= expand.grid(
+  │ 	var= psimsVars,
+  │ 	year= 1979),
+  │       .variables= c( "var", "year"),
+  │       .fun= renderAnnualRecipe,
+  │       days= nldasDates[1:2])),
+  │   file= "Makeflow.test",
+  │   append= TRUE)
+  │ cat(
+  │   laply(
+  │     .data= psimsVars,
+  │     .fun= renderAllTimeRecipe,
+  │     years= 1979),
+  │   file= "Makeflow.test",
+  │   append= TRUE)
+  │ cat( "\n", remapRecipes, file= "Makeflow.test", append= TRUE)
+  ╰────
+
+  So far we have only specified the first two days of data.
+
+
+Visualize the test Makeflow
+───────────────────────────
+
+  ╭────
+  │ makeflow -D dot Makeflow.test >  Makeflow.test.dot
+  ╰────
+
+  Edit the DOT file by hand to make labels shorter.
+
+  ╭────
+  │ cat Makeflow.test.edited.dot | dot -T png -o Makeflow.test.png
+  ╰────
+
+  [file:Makeflow.test.png]
+
+  ╭────
+  │ cat Makeflow.test.edited.dot | dot -T svg -o Makeflow.test.svg
+  ╰────
+
+  [file:Makeflow.test.svg]
+
+
+Run test Makeflow
+─────────────────
+
+  ╭────
+  │ ## PATH=~/local/cctools/bin:$PATH
+  │ makeflow -c Makeflow.test
+  │ slurm_submit_workers --cores 0 -p "--time=60" midway-login2 9123 4
+  │ makeflow -Tworkqueue-sharedfs Makeflow.test
+  ╰────
+
+
+Write out and run the full Makeflow
+═══════════════════════════════════
+
+  Rewriting the Makeflow file begins with removing the existing copy.
+  Subsequent operations all use append operations.  This is why there is
+  an `rm' command in the `Makefile'.
+
+  Code blocks that are described above are gathered together in
+  `scripts/writeMakeflow.R' and so are not re-exported here, but
+  logically this is where the execution of `scripts/writeMakeflow.R'
+  occurs and the `Makeflow' file is created.
+
+
+  The next block should not be exectuted until you have a build of
+  CCTools installed in your environment and you study its
+  `slurm_submit_workers' script, or the appropriate resource manager for
+  your environment (SGE, Condor, etc.), to understand thoroughly what is
+  going on here.  For now creating the `Makeflow' file is the default
+  action of the `Makefile' and subsequent steps should be executed
+  manually.
+
+
+  ╭────
+  │ PATH=~/local/cctools/bin:$PATH
+  │ makeflow -c
+  │ slurm_submit_workers --cores 0 -p "--time=120" midway-login2 9123 8
+  │ makeflow -Tworkqueue-sharedfs
+  ╰────
+
+
+Copy the remapped, all-time data to scratch
+═══════════════════════════════════════════
+
+  This was necessary to alleviate some I/O resource issues on Midway.
+  The scripts in the following section look for a copy of their input
+  data on scratch, so if there is old data there and you forget this
+  step your results will not be what you expect.
+
+
+Write the pSIMS files
+═════════════════════
+
+TODO Bring the =writePsims.{sh,sbatch,r} code into this document for completeness
+─────────────────────────────────────────────────────────────────────────────────
+
+  ╭────
+  │ scripts/writePsims.sh
+  ╰────
+
+
+Clean up intermediate data
+══════════════════════════
+
+  ╭────
+  │ find data/NLDAS_FORA0125_H.002 -name "*.nc" -delete
+  ╰────

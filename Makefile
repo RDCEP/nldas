@@ -1,4 +1,10 @@
+# see scripts/runMakeflow.sh to see how to run the Makeflow, which is
+# outside the scope of this Makefile currently.  See also discussion
+# in the nldas.{org,txt} documents.
+
+
 Makeflow: scripts/writeMakeflow.R
+	rm Makeflow
 	$<
 
 data/output/nldasRegionByte.tif: scripts/writeNldasRegion.sh
@@ -27,14 +33,22 @@ $SCRIPTS += scripts/writeNldasRegion.R
 $SCRIPTS += scripts/writeNldasRegion.sh
 $SCRIPTS += scripts/writeMakeflow.R
 
-$SCRIPTS: tangle
-
-tangle: nldas.org
+$SCRIPTS: nldas.org
 	emacs --quick --batch \
-	  --file=nldas.org -f org-babel-tangle 2>&1 \
+	  --file=$< -f org-babel-tangle 2>&1 \
 	  | grep tangle
 	rsync -arq tangle/ scripts 
 	chmod ug+x scripts/*.{R,sh}
+
+tangle: $SCRIPTS
+
+#
+# untested and incomplete.  work in progress.
+# exporting the plain text document is done by hand from within Emacs for now.
+#
+# nldas.txt: nldas.org
+# 	emacs --quick --batch \
+# 	  --file=$< -f org-export-as 2>&1
 
 # TODO check for symlink existence.  This only needs to happen once per clone.
 
